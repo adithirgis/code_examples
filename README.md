@@ -1,2 +1,1 @@
-# code_examples
-Codes for example
+# Codes for example
