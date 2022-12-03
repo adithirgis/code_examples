@@ -21,8 +21,8 @@
   - `DEM\Delhi_SRTM_Elevation.tif` a raster file of the digital elevation model of Delhi
   - `direction_of_effect\parameters_pm.csv` is the file for the desired direction of effect, the columns in it are `param` - the parameter / variable name, and the direction of effect for them either positive (> 0) or negative (< 0) or no effect with respect to the response variable. 
   - `industries\Delhi_Industry_Details.csv` locations of the various industries in Delhi 
-  - `landuse\lulc_vars.csv` area covered by various land use type buffers around the measurement sites in Delhi
-  - `population\pop_vars.csv` population data in the buffers around the measurement sites in Delhi 
+  - `landuse\lulc_vars.csv` area covered by various land use type buffers around the measurement sites in Delhi derived using [Earth Engine](https://earthengine.google.com/).
+  - `population\pop_vars.csv` population data in the buffers around the measurement sites in Delhi derived using Earth Engine
   - `railways\Delhi_railways.shp` railway shapefile of Delhi
 
 
