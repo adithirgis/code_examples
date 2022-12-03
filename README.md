@@ -37,16 +37,27 @@
 ## Land use parameters 
 
 class - renamed_as 
+
 10 - tree_cover
+
 20 - shrubland
+
 30 - shrubland
+
 40 - cropland
+
 50 - builtup
+
 60 - bare_land
+
 70 - snow_ice
+
 80 - per_water_bodies
+
 90 - shrubland
+
 95 - mangroves
+
 100 - moss_lichen
 
 ## Column names 
