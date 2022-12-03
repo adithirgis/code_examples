@@ -18,8 +18,6 @@ library(caret)
 # return the calculated columns
 ################################################################################
 
-
-
 # GSD1 : Goemetric Standard Deviation
 GSD1 <- function(col, na.rm = TRUE) {
   GSD_col <- exp(sd(log(col), na.rm = TRUE))
@@ -44,13 +42,6 @@ stderr <- function(col, na.rm = FALSE) {
 
 
 
-
-
-
-
-
-
-
 ################################################################################
 # Functions for spatial data manipulation
 # Convert a file with latitude and longitude to a `sf` object and transform the projection of that file (usualy the projected coordinate system)
@@ -64,8 +55,6 @@ convert_sf_proj <- function(file_df, wgs, UTM_proj, long, lat) {
   # Transform the data's projection
   file_sf_proj <- st_transform(file_sf_proj, crs = UTM_proj)
 }
-
-
 
 
 
@@ -85,8 +74,6 @@ convert_sf <- function(file_df, wgs, long, lat) {
 
 
 
-
-
 ################################################################################
 # Convert shapefile to a particular coordinate system proj
 # Parameters in this function are file_sf : a shapefile. geopackage, geojson etc, a vector data; 
@@ -97,7 +84,6 @@ sf_proj <- function(file_sf, proj) {
   file_sf_proj <- st_read(file_sf, quiet = TRUE)
   file_sf_proj <- st_transform(file_sf_proj, crs = proj)
 }
-
 
 
 
@@ -119,9 +105,6 @@ lur_buffer_maker <- function(name, buffer_len) {
 
 
 
-
-
-
 ################################################################################
 # Generate a named vector for lur buffers
 # parameters are file_sf_proj : projected file with latitude longitude or projected spatial points to create buffers on;
@@ -137,9 +120,6 @@ buffer_points <- function(buffer, file_sf_proj) {
                     SIMPLIFY = FALSE, 
                     USE.NAMES = TRUE)
 }
-
-
-
 
 
 
@@ -169,9 +149,6 @@ buffer_points <- function(buffer, file_sf_proj) {
 
 
 
-
-
-
 ################################################################################
 # st_distance calculates Euclidean distance to each point
 # Extract distance from the airport, industries corresponding for each point
@@ -196,7 +173,6 @@ dist_variable_extraction <- function(file_sf_proj, airport_sf = NULL, industries
 
 
 
-
 ################################################################################
 # Extract distance from the airport, industries corresponding for each point
 # file_sf : a projected sf object usually a multipoint object;
@@ -213,7 +189,6 @@ extract_raster <- function(file_sf, dem, aod, wgs, UTM_proj) {
            aod = raster::extract(aod, .))
   file_sf_proj <- st_transform(file_sf, crs = UTM_proj)
 }
-
 
 
 
@@ -244,9 +219,6 @@ sig_star <- function(x) {
 
 
 
-
-
-
 ################################################################################
 # Extract the results (slope, tval, prob etc) from a linear regression model and also check slope sign for each variable
 # my_model : is the linear regression model;
@@ -272,10 +244,6 @@ model_data_extraction <- function(my_model, sig_star, direction_of_effect_table)
 
 
 
-
-
-
-
 ################################################################################
 # Function to check sign of the slope for direction of effect of each predictor from the direction_of_effect_table
 # sign : it is the sign column or the condition column in the direction_of_effect_table
@@ -289,10 +257,6 @@ check_sign_from_table <- function(sign, slope, val) {
     TRUE # Change this to NA 
   }
 } 
-
-
-
-
 
 
 
@@ -318,9 +282,6 @@ add_sign_check <- function(data_extracted, direction_of_effect_table) {
 
 
 
-
-
-
 ################################################################################
 # Function to create the linear regression model 
 # data_extracted : data extracted from model with the parameters and slope value, use this to check for the direction of effect for each parameter
@@ -340,10 +301,6 @@ create_model <- function(model_data, response_variable) {
   my_model <- lm(as.formula(eqtn), data = model_data)
   return(my_model)
 }
-
-
-
-
 
 
 
@@ -376,10 +333,6 @@ railway_fun <- function(buffering_railway, file_sf_proj, railway) {
   colnames(df_railway)[-1] <- paste0("rail_buffer_", colnames(df_railway)[-1])
   return(df_railway)
 }
-
-
-
-
 
 
 
@@ -492,9 +445,6 @@ run_lur_model <- function(col_interest, original_para, original_r2, response_var
 
 
 
-
-
-
 ################################################################################
 # function to remove variables with p value greater than 0.1
 # my_model : is the linear regression model
@@ -513,9 +463,6 @@ remove_p_value <- function(my_model, data_with_selected_variables, no) {
   }
   return(data_cleaned)
 }
-
-
-
 
 
 
@@ -539,9 +486,6 @@ vif_function <- function(my_model, data_with_selected_variables, no) {
   }
   return(data_cleaned)
 }
-
-
-
 
 
 
@@ -570,9 +514,6 @@ derive_lulc_as_df <- function(df_lulc) {
     dplyr::select(CODE, Parameter, Value) %>% 
     pivot_wider(names_from = Parameter, values_from = Value)
 }
-
-
-
 
 
 
