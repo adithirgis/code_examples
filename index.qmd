@@ -4,6 +4,9 @@ author: "Adithi R Upadhya"
 format:
   html:
     toc: true
+    toc-title: Contents
+    toc-location: left
+    smooth-scroll: true
     highlight-style: a11y
     html-math-method: katex
     code-copy: true
@@ -378,12 +381,6 @@ dataframe_selected_params_p_vif <- vif_function(my_model_built, dataframe_select
 my_model_built <- create_model(dataframe_selected_params_p_vif, response_variable)
 summary(my_model_built)
 data_to_check_for_direction_of_effect_after_cleaning <- vars(my_model_built, sig_star, direction_of_effect_table)
-
-dataframe_selected_params_p_vif <- remove_p_value(my_model_built, dataframe_selected_params_p_vif, 0.1)
-data_to_check_for_direction_of_effect_after_cleaning <- vars(my_model_built, sig_star, direction_of_effect_table)
-
-my_model_built <- create_model(dataframe_selected_params_p_vif, response_variable)
-summary(my_model_built)
 ```
 
 ## Cook's distance 
@@ -463,7 +460,6 @@ mean_adj_r2 <- mean(dataframe_selected_params_p_vif_cd_loocv$predicted_loocv_r2_
 ```{r}
 #| echo: fenced
 #| label: final-steps
-
 # saveRDS(all_data, "pm2.5_2019.rds")
 
 dataframe_selected_params_p_vif_cd$predicted_model <- predict(final_model_built, 
@@ -488,7 +484,6 @@ file_sf_season <- delhi_sites_df %>%
 ```{r}
 #| echo: fenced
 #| label: predicted_vs_observed
-
 ggplot(dataframe_selected_params_p_vif_cd, aes(x = !!varname, y = predicted_model)) + 
   geom_point() + geom_abline() + theme_classic() + 
   scale_x_continuous(limits = c(0, NA)) + scale_y_continuous(limits = c(0, NA)) + 
