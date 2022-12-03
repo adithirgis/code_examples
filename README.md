@@ -7,7 +7,7 @@
 
 ## Walk through the code
 
-- https://walk-through-lur.netlify.app/, made using [Quarto](https://quarto.org/), an option to choose light or dark mode. 
+- https://walk-through-lur.netlify.app/, made using [Quarto](https://quarto.org/). 
 
 ## Folder overview 
 - `R` folder has all the scripts 

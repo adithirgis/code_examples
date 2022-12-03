@@ -1,0 +1,198 @@
+/*-- scss:defaults --*/
+
+// @import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital@0;1&display=swap');
+// @import url('https://fonts.googleapis.com/css2?family=Red+Hat+Text:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&display=swap');
+// @import url('https://fonts.googleapis.com/css?family=Roboto+Mono:300,400,500');
+// @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Mono:wght@300;400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&display=swap');
+
+// fonts
+$font-family-sans-serif: "Nunito Sans", sans-serif !default;
+$font-family-monospace: "Roboto Mono", "Noto Sans Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !default;
+
+// colors
+
+$primary: #FFFBF2;
+$primary-light: #cfd9e0;
+$secondary: #D96E34; // #A23E02
+$secondary-light: #A23E02; // #D96E34
+$secondary-dark: #640D00;
+
+$body-bg: #101921 !default;
+$body-color: white !default;
+$link-color: $secondary; // darken($primary, 5) !default;
+
+// alternate colors for when the background changes
+$dark-bg-text-color: #fff !default;
+$dark-bg-link-color: #42affa !default;
+$dark-bg-code-color: #ffa07a !default;
+
+// headings
+$presentation-heading-font: "Nunito Sans", serif !default;
+$presentation-heading-color: $primary !default;
+// $presentation-h1-font-size: 2.6em !default; //2.5em 2.2em
+// $presentation-h2-font-size: 1.6em !default; //1.6em 1.8em
+// $presentation-h3-font-size: 1.3em !default; //1.3em 1.2em
+// $presentation-h4-font-size: 1.3em !default; //1.3em 1.15em
+
+// $presentation-font-size-root: 25px !default;
+// $presentation-font-smaller: 0.7 !default;
+// $presentation-line-height: 1.25em !default;
+
+// code blocks
+$code-block-bg: $body-bg !default;
+$code-block-border-color: lighten($body-color, 60%) !default;
+$code-block-font-size: 0.8em !default;
+
+$dark-bg-text-color: $primary;
+
+// highlighting
+$selection-bg: $primary;
+
+/*-- scss:rules --*/
+
+// title slide
+.title-slide {
+  background-color: rgba(255, 255, 255, 0);
+  //opacity: .85 !important;  issue: carries over to rest of section
+  //padding: 1em 1em 1em 1em; issue: adds padding to background img
+}
+
+
+// links
+.reveal a {
+  text-decoration: underline;
+}
+
+.reveal a:hover {
+  text-decoration: none;
+}
+
+.reveal {
+  h2 {
+    font-family: $font-family-sans-serif;
+  }
+
+  h3, h4 {
+  font-family: $font-family-sans-serif;
+  color: $secondary;
+  }
+
+  //.title-slide h2 {
+  //  font-size: $revealjs-h2-font-size;
+  //}
+
+  h3 {
+    color: $primary;
+  }
+
+}
+
+.center-x {
+  text-align: center;
+}
+
+.right {
+  text-align: right;
+}
+
+// inline code
+.reveal code {
+  color: $secondary-dark;
+  background-color: lighten($secondary, 20) !important;
+  padding: 0.05em 0.15em 0.05em 0.15em !important;
+  border-radius: 5px !important;
+}
+
+// smaller text
+.small-text {
+  font-size: 80%;
+}
+
+// horizontal bar
+
+hr {
+  color: $primary;
+}
+
+// panel tabs
+
+// line under tabs
+.panel-tabset [role="tablist"] {
+  border-bottom-width: 1px;
+}
+
+// inactive tabs
+.panel-tabset [role="tab"] {
+  border-color: #fff #fff transparent; // top sides bottom
+}
+
+// hover
+.panel-tabset [role="tab"]:hover:not([aria-selected="true"]) {
+  border-color: #b1b1b1 #b1b1b1 transparent; // top sides bottom
+}
+
+// selected tab
+.panel-tabset [role="tab"][aria-selected="true"] {
+ // border-bottom-color: #fff !important;
+}
+
+// inline code
+
+.reveal code {
+  color: $secondary-dark;
+  background-color: $secondary-light;
+  //border: 1px solid $secondary;
+  padding: 2 2 2 2px;
+  border-radius: 1px;
+}
+
+// code block
+
+div.sourceCode {
+  //margin: 0.25em 0 0 0 !important;
+  border: 2px solid $primary-light !important;
+  border-radius: 0px !important;
+}
+
+// footer
+.reveal .footer {
+  //font-size: 25px !important; // ideally would match font size at the root
+  a {
+    color: $secondary !important;
+  }
+}
+
+// odds & ends
+
+.h3-size {font-size: $presentation-h3-font-size;}
+
+.fade {opacity: 0.5;}
+
+.pad {padding: 1em 1em 1em 1em;}
+
+.margin-top {margin-top: 2em;}
+
+.bg-box {
+  //background-color: $body-bg;
+  // background: rgba(100, 13, 0, 0.5);
+  background: rgba(16, 25, 33, 0.6) !important;
+  border-radius: 0em;
+  padding: 1em 1em 1em 1em;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.25);
+  h1 {text-transform: uppercase; letter-spacing: 0.09em; font-size: 1.3em !important;}
+  h2 {font-size: 1.1em !important;}
+  h3 {font-size: 0.9em !important;}
+  .reveal p {font-size: 0.2em !important; color: red !important}
+  // position: relative;
+  // max-width: 600px;
+  // padding: 50px;
+  // background: red;
+}
+
+.bg-black {
+  background-color: black;
+  border-radius: 0.5em;
+}
+
+.white {color: white !important;}
