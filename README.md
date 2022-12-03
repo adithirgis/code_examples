@@ -5,6 +5,10 @@
 - https://adithi-spatial-learning.netlify.app/, made using [Quarto](https://quarto.org/). 
 - A portion of LUR project data analysis is shown here as an example.
 
+## Walk through the code
+
+- https://walk-through-lur.netlify.app/, made using [Quarto](https://quarto.org/). 
+
 ## Folder overview 
 - `R` folder has all the scripts 
   - `functions.R` all custom made functions are defined here
@@ -39,10 +43,38 @@ class - renamed_as
 
 ## Column names 
 
+```{r}
+"CODE"                    ,   "PM2.5"                      
+"lat"                     ,   "long"                       
+"tree_cover_buffer_100"   ,   "tree_cover_buffer_1000"     
+"tree_cover_buffer_300"   ,   "tree_cover_buffer_500"      
+"tree_cover_buffer_5000"  ,   "shrubland_buffer_100"       
+"shrubland_buffer_1000"   ,   "shrubland_buffer_300"       
+"shrubland_buffer_500"    ,   "shrubland_buffer_5000"      
+"cropland_buffer_100"     ,   "cropland_buffer_1000"       
+"cropland_buffer_300"     ,   "cropland_buffer_500"        
+"cropland_buffer_5000"    ,   "builtup_buffer_100"         
+"builtup_buffer_1000"     ,   "builtup_buffer_300"         
+"builtup_buffer_500"      ,   "builtup_buffer_5000"        
+"bare_land_buffer_100"    ,   "bare_land_buffer_1000"      
+"bare_land_buffer_300"    ,   "bare_land_buffer_500"       
+"bare_land_buffer_5000"   ,   "per_water_bod_buffer_100"   
+"per_water_bod_buffer_1000",   "per_water_bod_buffer_300"   
+"per_water_bod_buffer_500",   "per_water_bod_buffer_5000"  
+"rail_buffer_1000"        ,   "rail_buffer_500"            
+"rail_buffer_5000"        ,   "pop_buffer_300m"            
+"pop_buffer_500m"         ,   "pop_buffer_1000m"           
+"pop_buffer_5000m"        ,   "inverse_distance_industries"
+"inverse_distance_airport",   "elevation"                  
+"aod"  
+
+```
+
 ## Other similar models 
 
- Machine learning model:
+- Machine learning model:
   - [`Random forest`](https://link.springer.com/article/10.1023/a:1010933404324?utm_source=getftr&utm_medium=getftr&utm_campaign=getftr_pilot) using [`ranger`](https://cran.r-project.org/web/packages/ranger/ranger.pdf)
+
 - Geostatistical model:
   - [`Geographically weighted regression`](https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1538-4632.1996.tb00936.x) using [`GWmodel`](https://cran.r-project.org/web/packages/GWmodel/GWmodel.pdf)
 
