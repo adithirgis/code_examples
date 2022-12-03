@@ -10,7 +10,7 @@
 - https://walk-through-lur.netlify.app/, made using [Quarto](https://quarto.org/). 
 
 ## Folder overview 
-- `R` folder has all the scripts 
+- `R` folder  
   - `functions.R` all custom made functions are defined here
 - `index.qmd` is an example document on how to run the Land Use Regression model
 - `img` folder has images used in here
