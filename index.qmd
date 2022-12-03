@@ -120,6 +120,37 @@ tm_basemap(leaflet::providers$Stamen.Toner, alpha = 0.2) +
   tm_lines() 
 ```
 
+## View buffer of radius 1000 m (interactive map)
+
+```{r}
+#| echo: fenced
+#| label: view-buffers
+
+buffering_railway <- lur_buffer_maker(name = "rail_buffer_", buffer_len = c(500, 1000, 5000))
+buffers <- buffer_points(buffering_railway, delhi_sites_proj)
+buffers_railway <- mapply(FUN = sf::st_intersection,
+                      x = buffers,
+                      MoreArgs = list(y = railway),
+                      SIMPLIFY = FALSE, 
+                      USE.NAMES = TRUE)
+
+
+tm_basemap(leaflet::providers$Stamen.Toner, alpha = 0.2) + 
+  tm_shape(buffers$rail_buffer_1000m) + 
+  tm_polygons()
+```
+
+
+## View railway lengths inside of buffer of radius 1000 m (interactive map)
+
+```{r}
+#| echo: fenced
+#| label: view-railway-buffers
+
+tm_basemap(leaflet::providers$Stamen.Toner, alpha = 0.2) + 
+  tm_shape(buffers_railway$rail_buffer_1000m) + 
+  tm_lines()
+```
 
 ## Extracting distance variables for all `CODE`
 
@@ -163,7 +194,6 @@ delhi_sites_proj_var <- extract_raster(delhi_sites_proj_var, dem, aod, wgs, UTM_
 lulc_file_name <- "lulc_vars.csv"
 pop_file_name <- "pop_vars.csv"
 
-buffering_railway <- lur_buffer_maker(name = "rail_buffer_", buffer_len = c(500, 1000, 5000))
 df_railway <- railway_fun(buffering_railway, delhi_sites_proj_var, railway)
 
 file_lulc <- read_csv(here::here("data/landuse", lulc_file_name))
