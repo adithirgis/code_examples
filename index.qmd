@@ -85,10 +85,6 @@ tm_basemap(leaflet::providers$Stamen.Toner, alpha = 0.2) +
 #| label: read-direction-of-effect-table
 direction_of_effect_table <- read_csv(here("data/direction_of_effect", "parameters_pm.csv")) %>% 
   dplyr::select(param, sign, val)
-direction_of_effect_table %>% 
-  gt() %>% 
-  tab_options(container.overflow.x = TRUE,
-  container.overflow.y = TRUE)
 ```
 
 

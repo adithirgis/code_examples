@@ -7,7 +7,7 @@
 
 ## Walk through the code
 
-- https://walk-through-lur.netlify.app/, made using [Quarto](https://quarto.org/). 
+- https://walk-through-lur.netlify.app/, made using [Quarto](https://quarto.org/), an option to choose light or dark mode. 
 
 ## Folder overview 
 - `R` folder has all the scripts 
@@ -15,8 +15,16 @@
 - `index.qmd` is an example document on how to run the Land Use Regression model
 - `img` folder has images used in here
 - `data` folder has data
-  - here the file used for the training, validation, and prediction need to have a column called `CODE` to uniquely identify each point for the analysis; this is usually a `multipoint` object
-  - 
+  - `training_data\yearly_avg_2018_2021.csv` and `Delhi_code_spatial_info\Delhi_site_lat_long_info.csv` these are the measurement sites in Delhi and the file used for the training, validation, and prediction, this file needs to have a column called `CODE` to uniquely identify each point for the analysis; this is usually a `multipoint` object
+  - `airport\airport_point.csv` latitude, longitude data of airport runway in Delhi
+  - `AOD\interpolated\Delhi_AOD_map_2019.tif` a raster file of aerosol  optical depth of the year 2019 in Delhi, this is resampled using bilinear interpolation to 50 m
+  - `DEM\Delhi_SRTM_Elevation.tif` a raster file of the digital elevation model of Delhi
+  - `direction_of_effect\parameters_pm.csv` is the file for the desired direction of effect, the columns in it are `param` - the parameter / variable name, and the direction of effect for them either positive (> 0) or negative (< 0) or no effect with respect to the response variable. 
+  - `industries\Delhi_Industry_Details.csv` locations of the various industries in Delhi 
+  - `landuse\lulc_vars.csv` area covered by various land use type buffers around the measurement sites in Delhi
+  - `population\pop_vars.csv` population data in the buffers around the measurement sites in Delhi 
+  - `railways\Delhi_railways.shp` railway shapefile of Delhi
+
 
 ## Methodology 
 
@@ -72,10 +80,10 @@ class - renamed_as
 
 ## Other similar models 
 
-- Machine learning model:
+#### Machine learning model:
   - [`Random forest`](https://link.springer.com/article/10.1023/a:1010933404324?utm_source=getftr&utm_medium=getftr&utm_campaign=getftr_pilot) using [`ranger`](https://cran.r-project.org/web/packages/ranger/ranger.pdf)
 
-- Geostatistical model:
+#### Geostatistical model:
   - [`Geographically weighted regression`](https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1538-4632.1996.tb00936.x) using [`GWmodel`](https://cran.r-project.org/web/packages/GWmodel/GWmodel.pdf)
 
 ## Session information and package versions 
@@ -85,3 +93,7 @@ class - renamed_as
 ## LICENSE
 
 [Click here.](https://github.com/adithirgis/code_examples/blob/main/LICENSE)
+
+## Suggestions / comments 
+
+- Please create a pull request in this repository. 
