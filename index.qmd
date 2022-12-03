@@ -1,0 +1,473 @@
+---
+title: "Land Use Regression modelling - example"
+author: "Adithi R Upadhya"
+format:
+  html:
+    toc: true
+    highlight-style: a11y
+    html-math-method: katex
+    code-copy: true
+    code-tools: true
+    self-contained: true
+    theme:
+      dark: darkly
+      light: flatly
+execute:
+  warning: false
+  message: false
+  cache: true
+---
+
+## Setting up
+
+- First, source the [functions.R](https://github.com/adithirgis/code_examples/blob/main/R/functions.R) file that has custom-functions and loads the required libraries. 
+
+```{r}
+#| echo: fenced
+#| label: load-libraries
+source(here::here("R", "functions.R"))
+library(tmap)
+library(gt)
+```
+
+
+## Coordinate reference systems
+
+- Define your coordinate system used for collecting data, here the Geographic coordinate system is [`wgs`](https://gisgeography.com/wgs84-world-geodetic-system/) and also define your projected coordinate system, here it is [`UTM_proj`](https://www.distancesto.com/coordinates/in/central-delhi-latitude-longitude/history/281282.html) to calculate buffer and distances in meters
+- `_proj` suffix denotes that data is converted to `UTM_proj` CRS. 
+- Mention your response variable to build the model on.
+
+```{r}
+#| echo: fenced
+#| label: define-projections
+wgs <- "+proj=longlat +datum=WGS84 +no_defs"
+UTM_proj <- "+proj=utm +zone=43 +datum=WGS84" 
+response_variable <- "PM2.5"
+varname <- sym("PM2.5")
+```
+
+## Delhi sites data
+
+- Read the Delhi data, please make sure all your data has a **CODE** column to uniquely identify the points of training / or each site of interest.
+
+```{r}
+#| echo: fenced
+#| label: read-data-transform
+delhi_sites_df <- read.csv(here("data/Delhi_code_spatial_info", "Delhi_site_lat_long_info.csv")) %>% 
+  distinct(CODE, .keep_all = T) %>% 
+  mutate(lat = latitude, long = longitude)
+delhi_sites_sf <- convert_sf(delhi_sites_df, wgs, "longitude", "latitude")
+delhi_sites_proj <- convert_sf_proj(delhi_sites_df, wgs, UTM_proj, "longitude", "latitude") %>% 
+  dplyr::select(CODE, lat, long)
+delhi_sites_proj %>% 
+  head() %>% 
+  gt() %>% 
+  tab_options(container.overflow.x = TRUE,
+  container.overflow.y = TRUE)
+```
+
+
+## View Delhi sites (interactive map)
+
+```{r}
+#| echo: fenced
+#| label: view-delhi-sites
+tmap_mode("view")
+tm_basemap(leaflet::providers$Stamen.Toner, alpha = 0.2) + 
+  tm_shape(delhi_sites_proj) +
+  tm_dots(size = 0.1, col = "blue") 
+```
+
+## Check the desired direction of sign of effect
+
+```{r}
+#| echo: fenced
+#| label: read-direction-of-effect-table
+direction_of_effect_table <- read_csv(here("data/direction_of_effect", "parameters_pm.csv")) %>% 
+  dplyr::select(param, sign, val)
+direction_of_effect_table %>% 
+  gt() %>% 
+  tab_options(container.overflow.x = TRUE,
+  container.overflow.y = TRUE)
+```
+
+
+## Reading in other spatial predictors
+
+1. Airport coordinates in the object `airport`. Note, that there is one airport location because there is just one runway;
+2. Industries coordinates in the object `industries`;
+3. Railways in the `railway` object;
+4. Convert all of them to projected coordinate system.
+
+```{r}
+#| echo: fenced
+#| label: read-spatial-predictors
+airport <- read_csv(here("data/airport","airport_point.csv")) 
+airport_proj <- convert_sf_proj(airport, wgs, UTM_proj, "Longitude", "Latitude")
+filters_to_check <- c("stone cutting", "foundry", "metal fabrication",
+                      "rubber", "plastic", "electricals/metal fabrication/moulds", 
+                      "Paper & pulp", "machines", "glass works", "charcoal", 
+                      "RMC", "rice mill", "flyash bricks", "forging")
+industries <- read_csv(here::here("data/industries", "Delhi_Industry_Details.csv")) %>% 
+  filter(Type %in% filters_to_check)
+industries <- convert_sf_proj(industries, wgs, UTM_proj, "Long", "Lat")
+railway <- sf_proj(here("data/railways", "Delhi_railways.shp"), UTM_proj)
+```
+
+## View Railways (interactive map)
+
+```{r}
+#| echo: fenced
+#| label: view-railway-data
+tm_basemap(leaflet::providers$Stamen.Toner, alpha = 0.2) + 
+  tm_shape(railway) +
+  tm_lines() 
+```
+
+
+## Extracting distance variables for all `CODE`
+
+```{r}
+#| echo: fenced
+#| label: extract-spatial-predictors
+delhi_sites_proj_var <- dist_variable_extraction(delhi_sites_proj, 
+                                            airport_sf = airport_proj,
+                                            industries = industries)
+delhi_sites_proj_var %>% 
+  head() %>% 
+  gt() %>% 
+  tab_options(container.overflow.x = TRUE,
+  container.overflow.y = TRUE)
+```
+
+
+## Reading and extracting raster for all `CODE`
+
+```{r}
+#| echo: fenced
+#| label: extract-raster-predictors
+dem_name <- "Delhi_SRTM_Elevation.tif"
+aod_name <- "Delhi_AOD_map_2019.tif"
+
+aod <- raster(here("data/AOD/interpolated", aod_name))
+dem <- raster(here("data/DEM", dem_name))
+
+delhi_sites_proj_var <- extract_raster(delhi_sites_proj_var, dem, aod, wgs, UTM_proj)
+
+```
+
+## Adding land use and other variables
+
+- Here the land use, population, and the railway lengths are replaced with `0` wherever the values were `NA`.
+- The PM~2.5~ data is also added at this step. 
+
+```{r}
+#| echo: fenced
+#| label: read-other-predictors
+lulc_file_name <- "lulc_vars.csv"
+pop_file_name <- "pop_vars.csv"
+
+buffering_railway <- lur_buffer_maker(name = "rail_buffer_", buffer_len = c(500, 1000, 5000))
+df_railway <- railway_fun(buffering_railway, delhi_sites_proj_var, railway)
+
+file_lulc <- read_csv(here::here("data/landuse", lulc_file_name))
+file_lulc <- file_lulc %>% 
+  dplyr::select(everything(), -`...1`) 
+df_lulc <- derive_lulc_as_df(file_lulc)
+
+df_pop <- read.csv(here::here("data/population", pop_file_name), sep = ",") 
+
+dataframe_all_params <- list(df_lulc, df_railway, df_pop) %>% 
+  reduce(left_join, by = "CODE") %>%
+  as.data.frame() %>% 
+  dplyr::select(where(~!all(is.na(.x)))) %>% 
+  mutate_if(is.numeric, ~replace_na(., 0)) 
+
+pollutant_data <- read.csv(here("data/training_data", "yearly_avg_2018_2021.csv")) %>% 
+  mutate(PM2.5 = as.numeric(as.character(pm25)),
+         CODE = site) %>% 
+  filter(year == 2019) %>% 
+  dplyr::select(CODE, !!!response_variable)
+  
+dataframe_all_params <- list(dataframe_all_params, delhi_sites_proj_var, pollutant_data) %>% 
+  reduce(left_join, by = "CODE") %>%
+  as.data.frame() %>% 
+  dplyr::select(CODE, lat, long, contains("ndvi"), everything(), 
+                -geometry) 
+
+dataframe_all_params %>% 
+  head() %>% 
+  gt() %>% 
+  tab_options(container.overflow.x = TRUE,
+  container.overflow.y = TRUE)
+
+```
+
+## Performing univariate regression 
+
+- Here, we performed the univariate regression (ex: PM~2.5~ vs ndvi_buffer_200m) to find out the parameter which has the highest R^2^ and the desired direction of effect.
+- We created an empty dataframe `data_univariate_summary` to add the values for univariate regression.
+- We also checked for continuous repeated values in the columns using a data frame `cou`.
+- We check if a column has more than one non-zero or non-NA value to build the model.
+- This step is necessary as we have replaced NA values with 0 and also we need more than one value to build a linear model.
+- Check if column exists after cleaning and then in an iterative way perform univariate regression.
+- Apply `add_sign_check` to the `data_univariate_summary` / univariate regression table we generated, keep the variables where the desired direction / sign of effect is preserved. 
+- Extract the highest R^2^ and the parameter which has the highest R^2^.
+
+
+
+```{r}
+#| echo: fenced
+#| label: univariate-regression
+dataframe_all_params <- dataframe_all_params %>% 
+  dplyr::select(where(~!all(is.na(.x)))) %>% 
+  dplyr::select(CODE, !!!response_variable, lat, long, contains("ndvi"), everything())
+
+col <- names(dataframe_all_params)[-c(1:2)]
+dataframe_all_params[, col] <- sapply(X = dataframe_all_params[, col],
+                        FUN = function(x) as.numeric(as.character(x)))
+
+data_univariate_summary <- data.frame(matrix(ncol = 6, nrow = 0))
+x <- c("value", "slope", "intercept", "R2", "f_val", "p_val")
+colnames(data_univariate_summary) <- x
+perc <- round(0.75 * nrow(dataframe_all_params))
+for (i in col) { 
+  dataframe_all_params <- dataframe_all_params[vapply(dataframe_all_params, 
+                                                      function(x) length(unique(x)) > 1, 
+                                                      logical(1L))]
+  if(i %in% colnames(dataframe_all_params)) {
+    cou <- (dataframe_all_params %>% 
+              group_by(!!!syms(i)) %>% 
+              summarise(n = n()) %>% 
+              filter(n == max(n)))$n[1]
+    if(cou < perc) {
+      univariate_model <- lm(paste(response_variable, " ~ ", i), data = dataframe_all_params) 
+      slope <- summary(univariate_model)$coefficients[2, 1]
+      R2 <- summary(univariate_model)$adj.r.squared
+      f <- summary(univariate_model)$fstatistic
+      one_univardata_univariate_summary <- data.frame(value = as.character(i), slope, 
+                             intercept = summary(univariate_model)$coefficients[1, 1],
+                             R2, f_val = summary(univariate_model)$fstatistic[[1]], 
+                             p_val = pf(f[1], f[2], f[3], lower.tail = F)[[1]])
+      data_univariate_summary <- rbind(data_univariate_summary, one_univardata_univariate_summary)
+     } else {
+      data_univariate_summary <- data_univariate_summary
+    }
+}}
+
+data_univariate_summary <- add_sign_check(data_univariate_summary, direction_of_effect_table)
+
+data_univariate_summary <- data_univariate_summary %>%
+  filter(obj != FALSE)
+
+highest_para <- (data_univariate_summary %>% 
+                   arrange(desc(R2)))$value[1]  
+original_para <- highest_para
+
+highest_r2 <- (data_univariate_summary %>% 
+                   arrange(desc(R2)))$R2[1]
+original_r2 <- highest_r2
+
+```
+## Stepwise supervised linear regression
+
+- The highest R^2^ in the univariate model is `r original_r2` and the parameter is `r original_para`.
+- We will now perform the stepwise supervised linear regression.
+
+```{r}
+#| echo: fenced
+#| label: stepwise-supervised-linear-regression
+dataframe_all_params <- dataframe_all_params %>% 
+  dplyr::select(CODE, !!!response_variable, everything())
+col_interest <- colnames(dataframe_all_params[, -c(1:2)])
+dataframe_all_params[, col_interest] <- sapply(X = dataframe_all_params[, col_interest],
+                                          FUN = function(x) as.numeric(as.character(x)))
+
+c(variable_list, change_in_r2, highest_r2, df_slope_info, df_r2_info) := 
+  run_lur_model(col_interest, original_para, original_r2, 
+                response_variable, dataframe_all_params, direction_of_effect_table, 0.01)
+```
+
+
+## Results of stepwise supervised linear regression
+
+- The change in R^2^ was observed to be `r change_in_r2`, the multivariate model adjusted R^2^ now is `r highest_r2`. 
+- The parameter / variables included in this model with highest R^2^ is `r variable_list`.
+- The dataframe with the best models (highest R^2^ with right direction of effect of all included variables / parameters) at each step of adding a variable or parameter is shown below. 
+
+```{r}
+#| echo: fenced
+#| label: view-table
+df_r2_info %>% 
+  arrange(desc(r2)) %>% 
+  gt() %>% 
+  tab_options(container.overflow.x = TRUE,
+  container.overflow.y = TRUE)
+```
+
+## Model building
+
+- Select relevant variables to make a new dataframe / df `dataframe_selected_params` from the orignal all parameter / variable list `dataframe_all_params`. 
+- Once the variable list is identified and the dataframe selected, build the model (`my_model_built`) and look at the summary. 
+
+
+```{r}
+#| echo: fenced
+#| label: model-building
+others <- paste(variable_list, collapse = " + ")
+dataframe_selected_params <- dataframe_all_params[ , which(names(dataframe_all_params) 
+                                                           %in% c(variable_list, 
+                                                                  response_variable, "CODE"))]
+equ <- as.formula(paste(response_variable, others, sep = " ~ "))
+my_model_built <- lm(as.formula(equ), data = dataframe_selected_params)
+summary(my_model_built)
+```
+
+## Check `p-value` of the model
+
+- Once model built, check for p-values of all the parameters in the model and remove those with p-value > than `0.1`.
+- Check if the desired direction of effect for the remaining parameters is still preserved using `data_to_check_for_direction_of_effect_after_cleaning`.
+
+```{r}
+#| echo: fenced
+#| label: check-pvalue
+dataframe_selected_params_p <- remove_p_value(my_model_built, dataframe_selected_params, 0.1) 
+my_model_built <- create_model(dataframe_selected_params_p, response_variable)
+summary(my_model_built)
+data_to_check_for_direction_of_effect_after_cleaning <- vars(my_model_built, sig_star, direction_of_effect_table)
+```
+
+## Check `vif` of the model
+
+- Next we generate variance inflation factor (VIF) of the model to check for collinearity. 
+- We remove parameters / variables from the model built in the previous step with vif > 3. 
+- We build the model again and check for p-value using the function `remove_p_value`. 
+- Check if the desired direction of effect for the remaining parameters is still preserved using `data_to_check_for_direction_of_effect_after_cleaning`.
+
+
+```{r}
+#| echo: fenced
+#| label: check-vif
+dataframe_selected_params_p_vif <- vif_function(my_model_built, dataframe_selected_params_p, 3)
+my_model_built <- create_model(dataframe_selected_params_p_vif, response_variable)
+summary(my_model_built)
+data_to_check_for_direction_of_effect_after_cleaning <- vars(my_model_built, sig_star, direction_of_effect_table)
+
+dataframe_selected_params_p_vif <- remove_p_value(my_model_built, dataframe_selected_params_p_vif, 0.1)
+data_to_check_for_direction_of_effect_after_cleaning <- vars(my_model_built, sig_star, direction_of_effect_table)
+
+my_model_built <- create_model(dataframe_selected_params_p_vif, response_variable)
+summary(my_model_built)
+```
+
+## Cook's distance 
+
+- Since vif of the model built did not remove parameters / variables from the model (< 3). 
+- Calculate the cook's distance to remove influential observations.
+- Plot the cook's d values for the model built at the previous step. 
+
+
+```{r}
+#| echo: fenced
+#| label: check-cooksdist
+cooks_dist <- as.data.frame(cooks.distance(my_model_built)) %>% 
+  dplyr::select("CD" = `cooks.distance(my_model_built)`) %>% 
+  filter(CD >= 1)
+plot(cooks.distance(my_model_built), ylab = "cook's distance", xlab = "observation")
+no_rem <- nrow(cooks_dist)
+```
+
+- The no of rows which have cook's d  > than 1 are `r no_rem`.
+- If cook's distance is > 1 for any observation remove that from the `dataframe_selected_params_p_vif` else keep all the observations. 
+- Here we do not have any influential observation.
+
+```{r}
+#| echo: fenced
+#| label: remove-cooksdist
+if(dim(cooks_dist)[1] == 0) {
+  dataframe_selected_params_p_vif_cd <- dataframe_selected_params_p_vif
+} else {
+  dataframe_selected_params_p_vif_cd <- dataframe_selected_params_p_vif[-as.numeric(row.names(cooks_dist)), ]
+  dataframe_selected_params_p_vif_cd <- dataframe_selected_params_p_vif[as.numeric(row.names(cooks_dist)), ]
+  my_model_built <- create_model(dataframe_selected_params_p_vif_cd, response_variable)
+  data_to_check_for_direction_of_effect_after_cleaning <- vars(my_model_built, sig_star, direction_of_effect_table)
+}
+```
+
+
+
+## Final model building 
+
+- Build the final model. 
+- Check p-value and use this model for validation. 
+
+```{r}
+#| echo: fenced
+#| label: final-model
+final_model_built <- create_model(dataframe_selected_params_p_vif_cd, response_variable)
+summary(final_model_built)
+```
+
+## Leave One Out Cross Validation (LOOCV)
+
+- Perform LOOCV on the final model built.
+
+```{r}
+#| echo: fenced
+#| label: loocv-model
+others <- names(dataframe_selected_params_p_vif_cd[, !names(dataframe_selected_params_p_vif_cd)
+                                                   %in% c(response_variable, "CODE")])
+equ <- as.formula(paste(response_variable, paste(others, collapse = "+"), sep = " ~ "))
+dataframe_selected_params_p_vif_cd_loocv <- loocv_loop(dataframe_selected_params_p_vif_cd, 
+                                                       response_variable) %>% 
+  dplyr::select(CODE, contains("predicted"))
+mean_adj_r2 <- mean(dataframe_selected_params_p_vif_cd_loocv$predicted_loocv_r2_adj, na.rm = T)
+```
+
+- The mean adjusted R^2^ for LOOCV is `r mean_adj_r2`.
+
+
+## Spearman's coefficient and model saving
+
+- Predict using the final model to calculate Spearman's coefficient.
+- Calculate the residual.
+- Save the model in `.rds` format if required. 
+- Save the residual in `GeoPackage` format or any other desired format. 
+
+```{r}
+#| echo: fenced
+#| label: final-steps
+
+# saveRDS(all_data, "pm2.5_2019.rds")
+
+dataframe_selected_params_p_vif_cd$predicted_model <- predict(final_model_built, 
+                                                              newdata = dataframe_selected_params_p_vif_cd)
+
+cor.test(dataframe_selected_params_p_vif_cd$predicted_model, 
+         dataframe_selected_params_p_vif_cd$PM2.5, method = "spearman")
+
+file_sf_season <- delhi_sites_df %>% 
+  dplyr::select(CODE, lat, long) %>% 
+  left_join(., dataframe_selected_params_p_vif_cd, by = "CODE", suffix = c("", ".y")) %>% 
+  dplyr::select(-ends_with(".y")) %>%  
+  mutate(residual = !!varname - predicted_model) %>% 
+  st_as_sf(., coords = c("long", "lat"), crs = wgs) 
+
+# st_write(file_sf_season, dsn = here("pm2.5_2019.geojson"), driver = 'GeoJSON')
+```
+
+
+## Observed vs Predicted
+
+```{r}
+#| echo: fenced
+#| label: predicted_vs_observed
+
+ggplot(dataframe_selected_params_p_vif_cd, aes(x = !!varname, y = predicted_model)) + 
+  geom_point() + geom_abline() + theme_classic() + 
+  scale_x_continuous(limits = c(0, NA)) + scale_y_continuous(limits = c(0, NA)) + 
+  labs(x = "observed", y = "predicted")
+```
+
+
+
