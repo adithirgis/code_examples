@@ -7,7 +7,8 @@ library(car)
 library(data.table)
 library(here)
 library(caret)
-
+library(tmap)
+library(gt)
 
 
 

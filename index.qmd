@@ -21,14 +21,13 @@ execute:
 
 ## Setting up
 
-- First, source the [functions.R](https://github.com/adithirgis/code_examples/blob/main/R/functions.R) file that has custom-functions and loads the required libraries. 
+- Source the [functions.R](https://github.com/adithirgis/code_examples/blob/main/R/functions.R) file that has custom-functions and loads the required libraries. 
+- Data frames shown here are restricted to 5 observations. For detailed view check in RStudio after cloning this repository.
 
 ```{r}
 #| echo: fenced
 #| label: load-libraries
 source(here::here("R", "functions.R"))
-library(tmap)
-library(gt)
 ```
 
 
@@ -142,7 +141,9 @@ tm_basemap(leaflet::providers$Stamen.Toner, alpha = 0.2) +
 ```
 
 
-## View railway lengths inside of buffer of radius 1000 m (interactive map)
+## View railway inside of buffer of radius 1000 m (interactive map)
+
+- From this step we calculate length of railway in that buffer.
 
 ```{r}
 #| echo: fenced
