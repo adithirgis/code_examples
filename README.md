@@ -8,6 +8,7 @@
 ## Walk through the code
 
 - https://walk-through-lur.netlify.app/, made using [Quarto](https://quarto.org/). 
+- The resultant dataframe's 5 observations are shown. 
 
 ## Folder overview 
 - `R` folder  
