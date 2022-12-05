@@ -150,8 +150,10 @@ tm_basemap(leaflet::providers$Stamen.Toner, alpha = 0.2) +
 #| label: view-railway-buffers
 
 tm_basemap(leaflet::providers$Stamen.Toner, alpha = 0.2) + 
+  tm_shape(buffers$rail_buffer_1000m) + 
+  tm_polygons() +
   tm_shape(buffers_railway$rail_buffer_1000m) + 
-  tm_lines()
+  tm_lines() 
 ```
 
 ## Extracting distance variables for all `CODE`
