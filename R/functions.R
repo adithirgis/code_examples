@@ -19,12 +19,12 @@ library(gt)
 # return the calculated columns
 ################################################################################
 
-# GSD1 : Goemetric Standard Deviation
+# GSD1 : Geometric Standard Deviation
 GSD1 <- function(col, na.rm = TRUE) {
   GSD_col <- exp(sd(log(col), na.rm = TRUE))
   return(GSD_col)
 }
-# GM1 : Goemetric Mean
+# GM1 : Geometric Mean
 GM1 <- function(col, na.rm = TRUE) {
   GM_col <- exp(mean(log(col), na.rm = TRUE)) 
   return(GM_col)
@@ -76,7 +76,7 @@ convert_sf <- function(file_df, wgs, long, lat) {
 
 
 ################################################################################
-# Convert shapefile to a particular coordinate system proj
+# Convert vector data to a particular coordinate system proj
 # Parameters in this function are file_sf : a shapefile. geopackage, geojson etc, a vector data; 
 # proj : the coordinate system required;
 # returns a sf object with the specified proj projection
