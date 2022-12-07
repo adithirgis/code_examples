@@ -187,9 +187,10 @@ delhi_sites_proj_var <- extract_raster(delhi_sites_proj_var, dem, aod, wgs, UTM_
 
 ```
 
-## Adding land use and other variables
+## Adding land use, population parameters
 
-- Here the land use, population, and the railway lengths are replaced with `0` wherever the values were `NA`.
+- The land use, population parameters are added in the parameter list, which was derived using [Earth Engine](https://earthengine.google.com/).
+- The land use, population, and the railway lengths are replaced with `0` wherever the values were `NA`.
 - The PM~2.5~ data is also added at this step. 
 
 ```{r}

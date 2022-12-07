@@ -15,7 +15,7 @@ library(gt)
 
 
 ################################################################################
-# functions to calculate basic statistics, parameter for all function is a col: column to calculate;
+# functions to calculate basic statistics, parameter for all function is a col: column to calculate
 # return the calculated columns
 ################################################################################
 
@@ -46,7 +46,7 @@ stderr <- function(col, na.rm = FALSE) {
 ################################################################################
 # Functions for spatial data manipulation
 # Convert a file with latitude and longitude to a `sf` object and transform the projection of that file (usualy the projected coordinate system)
-# Parameters in this function are file_df : file with lat, long column and other attributes; wgs : coordinate system of the lat long format;
+# Parameters in this function are file_df : file with lat, long column and other attributes; wgs : coordinate system of the lat long format
 # UTM proj: resultant projection; lat: column name of latitude column; long: column name of longitude column
 # returns a sf object with the specified UTM_proj projection
 ################################################################################
@@ -62,8 +62,8 @@ convert_sf_proj <- function(file_df, wgs, UTM_proj, long, lat) {
 
 ################################################################################
 # Convert a file with latitude and longitude to a `sf` object 
-# Parameters in this function are file_df : file with lat, long column and other attributes; 
-# wgs : coordinate system of the lat long format;
+# Parameters in this function are file_df : file with lat, long column and other attributes
+# wgs : coordinate system of the lat long format
 # lat: column name of latitude column; long: column name of longitude column
 # returns a sf object with wgs projection
 ################################################################################
@@ -77,8 +77,8 @@ convert_sf <- function(file_df, wgs, long, lat) {
 
 ################################################################################
 # Convert vector data to a particular coordinate system proj
-# Parameters in this function are file_sf : a shapefile. geopackage, geojson etc, a vector data; 
-# proj : the coordinate system required;
+# Parameters in this function are file_sf : a shapefile. geopackage, geojson etc, a vector data which has a geographic coordinate system
+# proj : the coordinate system required
 # returns a sf object with the specified proj projection
 ################################################################################
 sf_proj <- function(file_sf, proj) {
@@ -91,12 +91,12 @@ sf_proj <- function(file_sf, proj) {
 
 ################################################################################
 # Generate a named vector for lur buffers
-# parameters are name : name of the variable to create buffer on;
+# parameters are name : name of the variable to create buffer on
 # buffer_len : a vector of buffers in meters to be generated
-# returns a named numeric vector with the names as "name_buffer_500m", etc.
+# returns a named numeric vector called buffering with the names as "name_buffer_500m", etc
 ################################################################################
 lur_buffer_maker <- function(name, buffer_len) {
-  # Create a list of buffer engths
+  # Create a list of buffer lengths
   buff_labs <- paste0(name, buffer_len, "m")
   buffering <- buffer_len
   names(buffering) <- buff_labs
@@ -107,12 +107,10 @@ lur_buffer_maker <- function(name, buffer_len) {
 
 
 ################################################################################
-# Generate a named vector for lur buffers
-# parameters are file_sf_proj : projected file with latitude longitude or projected spatial points to create buffers on;
-# buffer : a vector of buffers in meters to be generated
-# returns a named numeric vector with the names as "name_buffer_500m", etc.
 # width of the buffer is the radius from the center
-# Generate buffers of the above specified length for each of the points 
+# parameters are file_sf_proj : projected multipoint vector data to create buffers on
+# buffer : a named vector of buffers in meters to be generated
+# returns a sf object with named buffers and of the specified length for each of the point
 ################################################################################
 buffer_points <- function(buffer, file_sf_proj) {
   buffers <- mapply(FUN = sf::st_buffer,
@@ -176,19 +174,20 @@ dist_variable_extraction <- function(file_sf_proj, airport_sf = NULL, industries
 
 ################################################################################
 # Extract distance from the airport, industries corresponding for each point
-# file_sf : a projected sf object usually a multipoint object;
-# aod : Aerosol optical depth in raster format;
-# dem : Digital Elevation Model in raster format;
-# wgs : coordinate system of the raster files;
-# UTM_proj : projected coordinate system of the file_sf or the multipoint object
-# returns a dataframe with `elevation`, `aod` and other attributes of the original `file_sf`
+# file_sf_proj : a projected sf object usually a multipoint object
+# aod : Aerosol optical depth in raster format
+# dem : Digital Elevation Model in raster format
+# wgs : coordinate system of the raster files
+# UTM_proj : projected coordinate system of the file_sf_proj or the multipoint object
+# returns a dataframe with `elevation`, `aod` and other attributes of the original `file_sf_proj`
 ################################################################################
-extract_raster <- function(file_sf, dem, aod, wgs, UTM_proj) {
-  file_sf <- st_transform(file_sf, crs = wgs)
+extract_raster <- function(file_sf_proj, dem, aod, wgs, UTM_proj) {
+  file_sf <- st_transform(file_sf_proj, crs = wgs)
   file_sf <- file_sf %>% 
     mutate(elevation = sqrt(raster::extract(dem, .)),
            aod = raster::extract(aod, .))
   file_sf_proj <- st_transform(file_sf, crs = UTM_proj)
+  return(file_sf_proj)
 }
 
 
@@ -222,8 +221,8 @@ sig_star <- function(x) {
 
 ################################################################################
 # Extract the results (slope, tval, prob etc) from a linear regression model and also check slope sign for each variable
-# my_model : is the linear regression model;
-# sig_star : the function above to generate the significance star;
+# my_model : is the linear regression model
+# sig_star : the function above to generate the significance star
 # direction_of_effect_table : it is the parameter list of the desired sign of effect 
 # returns a data frame which has the model's data / parameters extracted along with whether each predictor's direction of effect is conserved or not
 ################################################################################
@@ -532,11 +531,276 @@ loocv_loop <- function(data_final_selected_variables, response_variable) {
            predicted_loocv_r2_adj = NA)
   for(i in 1:nrow(data_final_selected_variables)) {
     data_train <- data_final_selected_variables[-i, ]
-    mdl <- create_model(data_train, response_variable)
-    data_final_selected_variables$predicted_loocv[i] <- predict(mdl, data.frame(data_final_selected_variables[i, ]))
-    data_final_selected_variables$predicted_loocv_r2[i] <- summary(mdl)$r.squared
-    data_final_selected_variables$predicted_loocv_r2_adj[i] <- summary(mdl)$adj.r.squared
+    my_model <- create_model(data_train, response_variable)
+    data_final_selected_variables$predicted_loocv[i] <- predict(my_model, data.frame(data_final_selected_variables[i, ]))
+    data_final_selected_variables$predicted_loocv_r2[i] <- summary(my_model)$r.squared
+    data_final_selected_variables$predicted_loocv_r2_adj[i] <- summary(my_model)$adj.r.squared
   }
   return(data_final_selected_variables)
 }
+
+
+
+
+################################################################################
+# function to carry out 10 fold cross validation (10 fold CV)
+# data_final_selected_variables : data frame with `CODE`, response variable, and the final model selected parameters only
+# response_variable : response variable like the PM2.5 etc
+# k is the number of folds
+# returns a data frame with the `CODE` column and 10 fold r2, adjusted r2, and 10 fold prediction
+################################################################################
+loop_kfold <- function(data_final_selected_variables, response_variable, k = 10) {
+  data_final_selected_variables <- data_final_selected_variables[sample(nrow(data_final_selected_variables)), ]
+  folds <- cut(seq(1, nrow(data_final_selected_variables)), breaks = k, labels = FALSE)
+  new_data <- data.frame()
+  for(i in 1:k) {
+    training_indexes <- which(folds == i, arr.ind = TRUE)
+    data_train <- data_final_selected_variables[-training_indexes, ]
+    my_model <- create_model(data_train, response_variable)
+    cal_new_data <- data.frame(data_final_selected_variables[training_indexes, ])
+    cal_new_data$predicted_10fold <- predict(my_model, cal_new_data)
+    cal_new_data$predicted_10fold_r2 <- summary(my_model)$r.squared
+    cal_new_data$predicted_10fold_r2_adj <- summary(my_model)$adj.r.squared
+    new_data <- rbind(new_data, cal_new_data)
+  }
+  return(new_data)
+}
+
+
+
+
+################################################################################
+# function to extract various buffers of different classes of LULC map from ESA LandCover v100
+# parameters are file_sf : a shapefile. geopackage, geojson etc, a vector data which has a geographic coordinate system
+# buffer : a named vector of buffers in meters to be generated
+# lulc : raster data of Land Use Land Cover of 10 m and from ESA Landcover v100
+# i : it is one single point or one observation where the different buffer of different classes are generated
+# data_lulc : a blank data frame which will be populated with lulc data of different classes and their buffers
+# returns a data frame with the `CODE` column land use classes and their corresponding buffer areas for each point in `file_sf`
+################################################################################
+extract_lulc_parameters <- function(i, buffer, file_sf, lulc, data_lulc) {
+  # Create a temp folder to store intermediate data
+  # Code to reduce burden of c drive, make a temp folder in D drive and unlink the folder each time, saves space
+  OWNER <- "del"
+  dir.create(file.path("D:/", OWNER), showWarnings = FALSE)
+  raster::rasterOptions(tmpdir = file.path("D:/", OWNER))
+  # Generate the buffers for each point
+  # width is the radius from the center
+  # Generate buffers of the above specified length for each of the multipoint observation
+  buffers <- buffer_points(buffer, file_sf[i, ])
+  lulc_clip_buffer <- mapply(FUN = raster::mask,
+                             mask = buffers,
+                             MoreArgs = list(x = lulc),
+                             SIMPLIFY = FALSE, 
+                             USE.NAMES = TRUE)
+  for(j in names(lulc_clip_buffer)) {
+    # Crop the masked raster using each of the buffers and the buffer masked lulc one by one
+    cropped_img <- crop(lulc_clip_buffer[[j]], buffers[[j]])
+    # Calculate area / mean / sum for each land use type and track the buffer and type of land use
+    table_generated <- as.data.frame(aggregate(raster::getValues(area(cropped_img, weights = FALSE)), 
+                                     by = list(getValues(cropped_img)), FUN = sum)) %>% 
+      mutate(CODE = file_sf[i, "CODE"][[1]], variable = paste0(Group.1, "_", j)) %>% 
+      dplyr::select(CODE, "Area" = x, variable, Group.1) %>% 
+      filter(Group.1 != 0)
+    # bind for all the buffers and all other the points / CODE / observations
+    data_lulc <- rbind(data_lulc, table_generated)
+  }
+  return(data_lulc)
+}
+
+
+
+
+################################################################################
+# function to save as a csv the extracted land use buffer and its area
+# parameters are data_lulc : data extracted from the function extract_lulc_parameters(...)
+# name : file name to store the lulc data
+# writes the file generated 
+################################################################################
+write_lulc_vars <- function(data_lulc, name) {
+  df_lulc <- data_lulc %>% 
+    dplyr::select(Area, variable, CODE) %>% 
+    pivot_wider(names_from = variable, values_from = Area)
+  write.csv(df_lulc, name)
+}
+
+
+
+
+################################################################################
+# function to extract various buffers of ndvi from Sentinel 10 m
+# parameters are file_sf : a shapefile. geopackage, geojson etc, a vector data which has a geographic coordinate system
+# buffer : a named vector of buffers in meters to be generated
+# ndvi : raster data of ndvi from Sentinel 10 m
+# name : name of the final extracted data to be stored
+# writes the file generated 
+################################################################################
+extract_ndvi_parameters <- function(buffer, file_sf, ndvi, name) {
+  data_ndvi <- data.frame()
+  for(i in 1:nrow(file_sf)) {
+    OWNER <- "del"
+    dir.create(file.path("D:/", OWNER), showWarnings = FALSE)
+    raster::rasterOptions(tmpdir = file.path("D:/", OWNER)) 
+    buffers <- buffer_points(buffer, file_sf[i, ])
+    ndvi_buffer <- mapply(FUN = raster::mask,
+                          mask = buffers,
+                          MoreArgs = list(x = ndvi),
+                          SIMPLIFY = FALSE, USE.NAMES = TRUE)
+    for(j in names(ndvi_buffer)) {
+      val <- raster::getValues(ndvi_buffer[[j]])
+      m <- mean(val, na.rm = TRUE)
+      table_generated <- data.frame(CODE = file_sf[i, "CODE"][[1]], variable = j, mean_ndvi = m) 
+      data_ndvi <- rbind(data_ndvi, table_generated)
+    } 
+    unlink(file.path("D:/", OWNER), recursive = TRUE)
+  }
+  df_ndvi <- data_ndvi %>% 
+    dplyr::select(mean_ndvi, variable, CODE) %>% 
+    pivot_wider(names_from = variable, values_from = mean_ndvi)
+  write.csv(df_ndvi, name)
+}
+
+
+
+
+################################################################################
+# function to extract various buffers of population data 
+# parameters are file_sf : a shapefile. geopackage, geojson etc, a vector data which has a geographic coordinate system
+# buffer : a named vector of buffers in meters to be generated
+# pop : raster data of population 
+# name : name of the final extracted data to be stored
+# writes the file generated 
+################################################################################
+extract_pop_vars <- function(buffer, file_sf, pop, name) {
+  data_population <- data.frame()
+  for(i in 1:nrow(file_sf)) {
+    OWNER <- "del"
+    dir.create(file.path("D:/", OWNER), showWarnings = FALSE)
+    raster::rasterOptions(tmpdir = file.path("D:/", OWNER)) 
+    buffers <- buffer_points(buffering, file_sf[i, ])
+    pop_buffer <- mapply(FUN = raster::mask,
+                         mask = buffers,
+                         MoreArgs = list(x = pop),
+                         SIMPLIFY = FALSE, USE.NAMES = TRUE)
+    for(j in names(pop_buffer)) {
+      val <- raster::getValues(pop_buffer[[j]])
+      s <- sum(val, na.rm = TRUE)
+      table_generated <- data.frame(CODE = file_sf[i, "CODE"][[1]], variable = j, sum_pop = s) 
+      data_population <- rbind(data_population, table_generated)
+    } 
+    unlink(file.path("D:/", OWNER), recursive = TRUE)
+  }
+  df_population <- data_population %>% 
+    dplyr::select(sum_pop, variable, CODE) %>% 
+    pivot_wider(names_from = variable, values_from = sum_pop)
+  write.csv(df_population, name)
+}
+
+
+
+
+################################################################################
+# filter roads used for this study
+################################################################################
+# road <- road %>% 
+#   filter(fclass %in% c("service", "tertiary", "secondary", "residential", "unclassified", "motorway",
+#                        "primary", "trunk", "secondary_link", "living_street", "trunk_link", "track",
+#                        "primary_link", "motorway_link", "tertiary_link")) 
+
+################################################################################
+# function to extract various road data
+# parameters are file_sf : a shapefile. geopackage, geojson etc, a vector data which has a geographic coordinate system
+# buffer : a named vector of buffers in meters to be generated
+# road : vector data of roads from OSM 
+# returns a dataframe with various all the extracted data
+################################################################################
+extract_road_vars <- function(buffer, file_sf, road) {
+  buffers <- buffer_points(buffer, file_sf)
+  # Check the intersection (using st_intersection) of roads with the buffers generated above
+  road_buffer <- mapply(FUN = sf::st_intersection,
+                      x = buffers,
+                      MoreArgs = list(y = road),
+                      SIMPLIFY = FALSE, 
+                      USE.NAMES = TRUE)
+  # Convert the above calculated lengths of roads in each buffer to a data frame
+  df_1 <- do.call(rbind, lapply(road_buffer, as.data.frame))
+  # Now convert the row names in each row as the first column of the data frame, this is to preserve the variable name for further use
+  data_road <- cbind(buffer_m = rownames(df_1), df_1)
+  # Extract the buffer length eg - roads 0.1 km, 1 km
+  data_road$buffer_m_1 <- sub(".*roads_buffer_*(.*?) *m.*", "\\1", data_road$buffer_m)
+  # Convert the extracted length to a sf object
+  data_road <- st_as_sf(data_road)
+  # Convert the extracted length column to numeric
+  data_road$len <- as.numeric(as.character(st_length(data_road)))
+  return(data_road)
+}
+
+################################################################################
+# function to extract various buffers of roads and make it readable
+# parameters are data : data extracted from the extract_road_parameters() function 
+# returns a dataframe with road buffers 
+################################################################################
+extract_road_filtered <- function(data_road) {
+  data_road_filter <- data_road %>% 
+    dplyr::select(buffer_m_1, CODE, len) %>% 
+    group_by(buffer_m_1, CODE) %>% 
+    summarise_all(list(~ sum(., na.rm = TRUE))) %>% 
+    pivot_wider(names_from = buffer_m_1, values_from = len)
+}
+
+################################################################################
+# names of different road types
+################################################################################
+road_buff <- "roads_buffer_"
+res_road_buff <- "roads_res_buffer_"
+high_road_buff <- "roads_high_buffer_"
+ter_road_buff <- "roads_ter_buffer_"
+
+# Residential
+res <- "residential"
+liv <- "living_street"
+
+# Major roads, primary / highway
+pri <- "primary"
+motor <- "motorway"
+trunk <- "trunk" 
+
+# Arterial, tertiary
+sec <- "secondary"
+ter <- "tertiary"
+mo_li <- "motorway_link"
+pr_li <- "primary_link"
+ter_li <- "tertiary_link"
+tr_li <- "trunk_link"
+ser <- "service"
+
+################################################################################
+# function to extract various buffers of roads and different road type length for all buffers
+# data_road : data extracted from the extract_road_parameters() function 
+# parameters are road_buff, res, liv, trunk, res_road_buff, pri, sec, motor, high_road_buff, ter, ter_road_buff, mo_li, ser, tr_li, ter_li, pr_li : various names of road types and their prefix
+# returns a dataframe with various road buffers and different road type buffers
+################################################################################
+extract_road_parameters <- function(data_road, road_buff, res, liv, trunk, res_road_buff, 
+                               pri, sec, motor, high_road_buff, ter, ter_road_buff, 
+                               mo_li, ser, tr_li, ter_li, pr_li) {
+  data_road$geometry <- NULL
+  df_road <- extract_road_filtered(data_road) 
+  colnames(df_road)[-1] <- paste0(road_buff, colnames(df_road)[-1])
+  df_road_res <- as.data.frame(data_road) %>%
+    filter(fclass == res | fclass == liv) 
+  df_road_res <- extract_road_filtered(df_road_res) 
+  colnames(df_road_res)[-1] <- paste0(res_road_buff, colnames(df_road_res)[-1])
+  df_road_pri <- as.data.frame(data_road) %>%
+    filter(fclass == pri | fclass == trunk | fclass == motor) 
+  df_road_pri <- extract_road_filtered(df_road_pri) 
+  colnames(df_road_pri)[-1] <- paste0(high_road_buff, colnames(df_road_pri)[-1])
+  df_road_ter <- as.data.frame(data_road) %>%
+    filter(fclass == ter | fclass == pr_li | fclass == mo_li | fclass == ser |
+             fclass == ter_li | fclass == sec | fclass == tr_li) 
+  df_road_ter <- extract_road_filtered(df_road_ter) 
+  colnames(df_road_ter)[-1] <- paste0(ter_road_buff, colnames(df_road_ter)[-1])
+  full_roads <- list(df_road, df_road_res, df_road_pri, df_road_ter) %>% 
+    reduce(full_join, by = "CODE")
+}
+
 
