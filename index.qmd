@@ -107,7 +107,7 @@ filters_to_check <- c("stone cutting", "foundry", "metal fabrication",
 industries <- read_csv(here::here("data/industries", "Delhi_Industry_Details.csv")) %>% 
   filter(Type %in% filters_to_check)
 industries <- convert_sf_proj(industries, wgs, UTM_proj, "Long", "Lat")
-railway <- sf_proj(here("data/railways", "Delhi_railways.shp"), UTM_proj)
+railway <- proj_sf(here("data/railways", "Delhi_railways.shp"), UTM_proj)
 ```
 
 ## View Railways (interactive map)
@@ -161,7 +161,7 @@ tm_basemap(leaflet::providers$Stamen.Toner, alpha = 0.2) +
 ```{r}
 #| echo: fenced
 #| label: extract-spatial-predictors
-delhi_sites_proj_var <- dist_variable_extraction(delhi_sites_proj, 
+delhi_sites_proj_var <- extract_dist_variable(delhi_sites_proj, 
                                             airport_sf = airport_proj,
                                             industries = industries)
 delhi_sites_proj_var %>% 
@@ -199,7 +199,7 @@ delhi_sites_proj_var <- extract_raster(delhi_sites_proj_var, dem, aod, wgs, UTM_
 lulc_file_name <- "lulc_vars.csv"
 pop_file_name <- "pop_vars.csv"
 
-df_railway <- railway_fun(buffering_railway, delhi_sites_proj_var, railway)
+df_railway <- extract_railway(buffering_railway, delhi_sites_proj_var, railway)
 
 file_lulc <- read_csv(here::here("data/landuse", lulc_file_name))
 file_lulc <- file_lulc %>% 
@@ -443,7 +443,7 @@ summary(final_model_built)
 others <- names(dataframe_selected_params_p_vif_cd[, !names(dataframe_selected_params_p_vif_cd)
                                                    %in% c(response_variable, "CODE")])
 equ <- as.formula(paste(response_variable, paste(others, collapse = "+"), sep = " ~ "))
-dataframe_selected_params_p_vif_cd_loocv <- loocv_loop(dataframe_selected_params_p_vif_cd, 
+dataframe_selected_params_p_vif_cd_loocv <- loop_loocv(dataframe_selected_params_p_vif_cd, 
                                                        response_variable) %>% 
   dplyr::select(CODE, contains("predicted"))
 mean_adj_r2 <- mean(dataframe_selected_params_p_vif_cd_loocv$predicted_loocv_r2_adj, na.rm = T)

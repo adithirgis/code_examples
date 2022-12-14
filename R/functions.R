@@ -81,7 +81,7 @@ convert_sf <- function(file_df, wgs, long, lat) {
 # proj : the coordinate system required
 # returns a sf object with the specified proj projection
 ################################################################################
-sf_proj <- function(file_sf, proj) {
+proj_sf <- function(file_sf, proj) {
   file_sf_proj <- st_read(file_sf, quiet = TRUE)
   file_sf_proj <- st_transform(file_sf_proj, crs = proj)
 }
@@ -156,7 +156,7 @@ buffer_points <- function(buffer, file_sf_proj) {
 # industries : a projected sf object (point of multiple industries)
 # returns a dataframe with `inverse_distance_industries`, `inverse_distance_airport` and other attributes of the original `file_sf`
 ################################################################################
-dist_variable_extraction <- function(file_sf_proj, airport_sf = NULL, industries = NULL) {
+extract_dist_variable <- function(file_sf_proj, airport_sf = NULL, industries = NULL) {
   file_sf_proj <- file_sf_proj %>%
     mutate(inverse_distance_industries = NA,
            inverse_distance_airport = as.numeric((1 / st_distance(., airport_sf, by_element = TRUE))))
@@ -226,7 +226,7 @@ sig_star <- function(x) {
 # direction_of_effect_table : it is the parameter list of the desired sign of effect 
 # returns a data frame which has the model's data / parameters extracted along with whether each predictor's direction of effect is conserved or not
 ################################################################################
-model_data_extraction <- function(my_model, sig_star, direction_of_effect_table) {
+extract_model_data <- function(my_model, sig_star, direction_of_effect_table) {
   data_extracted <- data.frame(
     slope = format((summary(my_model))$coefficients[, 1], scientific = TRUE),
     stde = round((summary(my_model))$coefficients[, 2], 4),
@@ -312,7 +312,7 @@ create_model <- function(model_data, response_variable) {
 # railway : vector data of railways usually line data
 # returns a dataframe with lengths of different buffers of railways for each point of interest / unique `CODE`
 ################################################################################
-railway_fun <- function(buffering_railway, file_sf_proj, railway) {
+extract_railway <- function(buffering_railway, file_sf_proj, railway) {
   buffers <- buffer_points(buffering_railway, file_sf_proj)
   buffers_railway <- mapply(FUN = sf::st_intersection,
                       x = buffers,
@@ -384,8 +384,8 @@ run_lur_model <- function(col_interest, original_para, original_r2, response_var
         lm_step <- lm(equ, data = data_with_variables)
         vr <- round((summary(lm_step))$coefficients[, 4], 4)
         if(all(!is.nan(vr)) & all(!is.na(vr))) {
-          # Apply model_data_extraction function to extract slope, std error, t value, significance etc and also check the slope sign
-          data_corr <- model_data_extraction(lm_step, sig_star, direction_of_effect_table)
+          # Apply extract_model_data function to extract slope, std error, t value, significance etc and also check the slope sign
+          data_corr <- extract_model_data(lm_step, sig_star, direction_of_effect_table)
           # Extract R2, AIC, RMSE and also track the equation
           data_corr <- data_corr %>% 
             mutate(r2 = round(summary(lm_step)$adj.r.squared, 4), aic = round(AIC(lm_step), 4), 
@@ -524,7 +524,7 @@ derive_lulc_as_df <- function(df_lulc) {
 # response_variable : response variable like the PM2.5 etc
 # returns a data frame with the `CODE` column and loocv r2, adjusted r2, and loocv prediction
 ################################################################################
-loocv_loop <- function(data_final_selected_variables, response_variable) {
+loop_loocv <- function(data_final_selected_variables, response_variable) {
   data_final_selected_variables <- data_final_selected_variables %>% 
     mutate(predicted_loocv = NA, 
            predicted_loocv_r2 = NA,
