@@ -102,6 +102,23 @@ class - renamed_as
 
 ![\label{fig:session_info}](img/session_info.jpg)
 
+## Earth Engine parameter download links
+
+- [LULC predictors extraction](https://code.earthengine.google.com/17ed646fc4afed19d58b6d3c8ebd9f5d) 
+- [NDVI predictors extraction](https://code.earthengine.google.co.in/bab3d8ccce61b72e4719f5b9b855031d)
+- https://code.earthengine.google.co.in/c0c232549638701710e359d057af9fa4
+- https://code.earthengine.google.co.in/3bb33602b139cbd8559c2b3d31fa503c
+- https://code.earthengine.google.co.in/4ea4a284dabdcad8d1a69892d2d4b9d1
+- https://code.earthengine.google.co.in/b01c5360bdb674104a0c377681c55bf4
+- https://code.earthengine.google.co.in/fc9544c89948a6416f2e049cfd00bd95
+- https://code.earthengine.google.co.in/581db9ee4a89363de6847cf12a2faaf3
+- https://code.earthengine.google.co.in/4d1f67bd2f1715287b84aa65653cec3f
+- https://code.earthengine.google.co.in/bb1889f92a3490729bb58ab0e32903a4
+- https://code.earthengine.google.co.in/192b69b5716f853733cbe431ebec8b3b
+- https://code.earthengine.google.co.in/81286c7bfe5460abe1511723d5503fcc
+- https://code.earthengine.google.co.in/994671b6b43489fa6909bf8ba71fd094
+- https://code.earthengine.google.co.in/0180b79190550b390882cf933a53908a
+
 ## LICENSE
 
 [Click here.](https://github.com/adithirgis/code_examples/blob/main/LICENSE)

@@ -31,11 +31,11 @@ source(here::here("R", "functions.R"))
 ```
 
 
-## Coordinate reference systems
+## Coordinate reference systems and Response variable
 
-- Define your coordinate system used for collecting data, here the Geographic coordinate system is [`wgs`](https://gisgeography.com/wgs84-world-geodetic-system/) and also define your projected coordinate system, here it is [`UTM_proj`](https://www.distancesto.com/coordinates/in/central-delhi-latitude-longitude/history/281282.html) to calculate buffer and distances in meters
+- Define the coordinate system used for collecting data, here we used the Geographic coordinate system is [`wgs`](https://gisgeography.com/wgs84-world-geodetic-system/) and also define the projected coordinate system, we used [`UTM_proj`](https://www.distancesto.com/coordinates/in/central-delhi-latitude-longitude/history/281282.html) (this is to calculate buffer and distances in meters).
 - `_proj` suffix denotes that data is converted to `UTM_proj` CRS. 
-- Mention your response variable to build the model on.
+- Mention your response variable / the variable you want to predict the values for.
 
 ```{r}
 #| echo: fenced
@@ -48,7 +48,8 @@ varname <- sym("PM2.5")
 
 ## Delhi sites data
 
-- Read the Delhi data, please make sure all your data has a **CODE** column to uniquely identify the points of training / or each site of interest.
+- Read the Delhi data, please make sure all training and predicting dataset has a **CODE** (this column is case sensitive as well) column to uniquely identify the points of training / or each site of interest.
+- The **CODE** is important and is used for deriving variables from Earth Engine as well, after we derive from various sources we use this column to join multiple predictors / variables dataframe. 
 
 ```{r}
 #| echo: fenced
@@ -190,6 +191,7 @@ delhi_sites_proj_var <- extract_raster(delhi_sites_proj_var, dem, aod, wgs, UTM_
 ## Adding land use, population parameters
 
 - The land use, population parameters are added in the parameter list, which was derived using [Earth Engine](https://earthengine.google.com/).
+- The codes for Earth Engine parameter / predictor / variable extraction is in the [ReadMe](https://github.com/adithirgis/code_examples#readme). 
 - The land use, population, and the railway lengths are replaced with `0` wherever the values were `NA`.
 - The PM~2.5~ data is also added at this step. 
 
@@ -236,7 +238,7 @@ dataframe_all_params %>%
 
 ## Performing univariate regression 
 
-- Here, we performed the univariate regression (ex: PM~2.5~ vs ndvi_buffer_200m) to find out the parameter which has the highest R^2^ and the desired direction of effect.
+- Here, we performed the univariate regression (ex: `PM~2.5~` vs `ndvi_buffer_200m`) to find out the parameter which has the highest R^2^ and the desired direction of effect.
 - We created an empty dataframe `data_univariate_summary` to add the values for univariate regression.
 - We also checked for continuous repeated values in the columns using a data frame `cou`.
 - We check if a column has more than one non-zero or non-NA value to build the model.
@@ -455,7 +457,7 @@ mean_adj_r2 <- mean(dataframe_selected_params_p_vif_cd_loocv$predicted_loocv_r2_
 ## Spearman's coefficient and model saving
 
 - Predict using the final model to calculate Spearman's coefficient.
-- Calculate the residual.
+- Calculate the residuals.
 - Save the model in `.rds` format if required. 
 - Save the residual in `GeoPackage` format or any other desired format. 
 
@@ -481,7 +483,7 @@ file_sf_season <- delhi_sites_df %>%
 ```
 
 
-## Observed vs Predicted
+## Observed vs Predicted values
 
 ```{r}
 #| echo: fenced
