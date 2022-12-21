@@ -93,7 +93,7 @@ direction_of_effect_table <- read_csv(here("data/direction_of_effect", "paramete
 
 1. Airport coordinates in the object `airport`. Note, that there is one airport location because there is just one runway;
 2. Industries coordinates in the object `industries`;
-3. Railways in the `railway` object;
+3. Railways in the `railway_proj` object which is projected;
 4. Convert all of them to projected coordinate system.
 
 ```{r}
@@ -107,8 +107,8 @@ filters_to_check <- c("stone cutting", "foundry", "metal fabrication",
                       "RMC", "rice mill", "flyash bricks", "forging")
 industries <- read_csv(here::here("data/industries", "Delhi_Industry_Details.csv")) %>% 
   filter(Type %in% filters_to_check)
-industries <- convert_sf_proj(industries, wgs, UTM_proj, "Long", "Lat")
-railway <- proj_sf(here("data/railways", "Delhi_railways.shp"), UTM_proj)
+industries_proj <- convert_sf_proj(industries, wgs, UTM_proj, "Long", "Lat")
+railway_proj <- proj_sf(here("data/railways", "Delhi_railways.shp"), UTM_proj)
 ```
 
 ## View Railways (interactive map)
@@ -117,7 +117,7 @@ railway <- proj_sf(here("data/railways", "Delhi_railways.shp"), UTM_proj)
 #| echo: fenced
 #| label: view-railway-data
 tm_basemap(leaflet::providers$Stamen.Toner, alpha = 0.2) + 
-  tm_shape(railway) +
+  tm_shape(railway_proj) +
   tm_lines() 
 ```
 
@@ -131,7 +131,7 @@ buffering_railway <- lur_buffer_maker(name = "rail_buffer_", buffer_len = c(500,
 buffers <- buffer_points(buffering_railway, delhi_sites_proj)
 buffers_railway <- mapply(FUN = sf::st_intersection,
                       x = buffers,
-                      MoreArgs = list(y = railway),
+                      MoreArgs = list(y = railway_proj),
                       SIMPLIFY = FALSE, 
                       USE.NAMES = TRUE)
 
@@ -163,8 +163,8 @@ tm_basemap(leaflet::providers$Stamen.Toner, alpha = 0.2) +
 #| echo: fenced
 #| label: extract-spatial-predictors
 delhi_sites_proj_var <- extract_dist_variable(delhi_sites_proj, 
-                                            airport_sf = airport_proj,
-                                            industries = industries)
+                                            airport = airport_proj,
+                                            industries = industries_proj)
 delhi_sites_proj_var %>% 
   head() %>% 
   gt() %>% 
@@ -201,7 +201,7 @@ delhi_sites_proj_var <- extract_raster(delhi_sites_proj_var, dem, aod, wgs, UTM_
 lulc_file_name <- "lulc_vars.csv"
 pop_file_name <- "pop_vars.csv"
 
-df_railway <- extract_railway(buffering_railway, delhi_sites_proj_var, railway)
+df_railway <- extract_railway(buffering_railway, delhi_sites_proj_var, railway_proj)
 
 file_lulc <- read_csv(here::here("data/landuse", lulc_file_name))
 file_lulc <- file_lulc %>% 

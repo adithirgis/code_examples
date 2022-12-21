@@ -156,10 +156,10 @@ buffer_points <- function(buffer, file_sf_proj) {
 # industries : a projected sf object (point of multiple industries)
 # returns a dataframe with `inverse_distance_industries`, `inverse_distance_airport` and other attributes of the original `file_sf`
 ################################################################################
-extract_dist_variable <- function(file_sf_proj, airport_sf = NULL, industries = NULL) {
+extract_dist_variable <- function(file_sf_proj, airport = NULL, industries = NULL) {
   file_sf_proj <- file_sf_proj %>%
     mutate(inverse_distance_industries = NA,
-           inverse_distance_airport = as.numeric((1 / st_distance(., airport_sf, by_element = TRUE))))
+           inverse_distance_airport = as.numeric((1 / st_distance(., airport))))
   for(i in 1:nrow(file_sf_proj)) {
     min_dist <- which.min(st_distance(file_sf_proj[i, ], industries))
     file_sf_proj[i, "inverse_distance_industries"] <- st_distance(file_sf_proj[i, ], industries[min_dist, ])
@@ -224,7 +224,7 @@ sig_star <- function(x) {
 # my_model : is the linear regression model
 # sig_star : the function above to generate the significance star
 # direction_of_effect_table : it is the parameter list of the desired sign of effect 
-# returns a data frame which has the model's data / parameters extracted along with whether each predictor's direction of effect is conserved or not
+# returns a dataframe which has the model's data / parameters extracted along with whether each predictor's direction of effect is conserved or not
 ################################################################################
 extract_model_data <- function(my_model, sig_star, direction_of_effect_table) {
   data_extracted <- data.frame(
@@ -355,7 +355,7 @@ extract_railway <- function(buffering_railway, file_sf_proj, railway) {
 ################################################################################
 run_lur_model <- function(col_interest, original_para, original_r2, response_variable, 
                           data_with_variables, direction_of_effect_table, change_val) {
-  # Make an empty data frame and try to extract results 
+  # Make an empty dataframe and try to extract results 
   data_with <- data.frame()
   # keep track of all the variables with the right direction of effect
   data_wo_slop_a <- data.frame()
@@ -448,9 +448,9 @@ run_lur_model <- function(col_interest, original_para, original_r2, response_var
 ################################################################################
 # function to remove variables with p value greater than 0.1
 # my_model : is the linear regression model
-# data_with_selected_variables : data frame with the selected parameters in my_model, CODE, and the response variable
+# data_with_selected_variables : dataframe with the selected parameters in my_model, CODE, and the response variable
 # no is the value of p for removing from the data
-# returns a data frame similar to data_with_selected_variables after removing the variables which have p value greater than 0.1
+# returns a dataframe similar to data_with_selected_variables after removing the variables which have p value greater than 0.1
 ################################################################################
 remove_p_value <- function(my_model, data_with_selected_variables, no) {
   p_values <- round((summary(my_model))$coefficients[, 4], 4)
@@ -470,9 +470,9 @@ remove_p_value <- function(my_model, data_with_selected_variables, no) {
 ################################################################################
 # function to remove variables with influential vif
 # my_model : is the linear regression model
-# data_with_selected_variables : data frame with the selected parameters in my_model, CODE, and the response variable
+# data_with_selected_variables : dataframe with the selected parameters in my_model, CODE, and the response variable
 # no is the value of vif for removing from the data
-# returns a data frame similar to data_with_selected_variables after removing the influential variables or vif > 3
+# returns a dataframe similar to data_with_selected_variables after removing the influential variables or vif > 3
 ################################################################################
 vif_function <- function(my_model, data_with_selected_variables, no) {
   vif_variable <- vif(my_model)
@@ -520,9 +520,9 @@ derive_lulc_as_df <- function(df_lulc) {
 
 ################################################################################
 # function to carry out leave one out cross validation (loocv)
-# data_final_selected_variables : data frame with `CODE`, response variable, and the final model selected parameters only
+# data_final_selected_variables : dataframe with `CODE`, response variable, and the final model selected parameters only
 # response_variable : response variable like the PM2.5 etc
-# returns a data frame with the `CODE` column and loocv r2, adjusted r2, and loocv prediction
+# returns a dataframe with the `CODE` column and loocv r2, adjusted r2, and loocv prediction
 ################################################################################
 loop_loocv <- function(data_final_selected_variables, response_variable) {
   data_final_selected_variables <- data_final_selected_variables %>% 
@@ -544,10 +544,10 @@ loop_loocv <- function(data_final_selected_variables, response_variable) {
 
 ################################################################################
 # function to carry out 10 fold cross validation (10 fold CV)
-# data_final_selected_variables : data frame with `CODE`, response variable, and the final model selected parameters only
+# data_final_selected_variables : dataframe with `CODE`, response variable, and the final model selected parameters only
 # response_variable : response variable like the PM2.5 etc
 # k is the number of folds
-# returns a data frame with the `CODE` column and 10 fold r2, adjusted r2, and 10 fold prediction
+# returns a dataframe with the `CODE` column and 10 fold r2, adjusted r2, and 10 fold prediction
 ################################################################################
 loop_kfold <- function(data_final_selected_variables, response_variable, k = 10) {
   data_final_selected_variables <- data_final_selected_variables[sample(nrow(data_final_selected_variables)), ]
@@ -575,8 +575,8 @@ loop_kfold <- function(data_final_selected_variables, response_variable, k = 10)
 # buffer : a named vector of buffers in meters to be generated
 # lulc : raster data of Land Use Land Cover of 10 m and from ESA Landcover v100
 # i : it is one single point or one observation where the different buffer of different classes are generated
-# data_lulc : a blank data frame which will be populated with lulc data of different classes and their buffers
-# returns a data frame with the `CODE` column land use classes and their corresponding buffer areas for each point in `file_sf`
+# data_lulc : a blank dataframe which will be populated with lulc data of different classes and their buffers
+# returns a dataframe with the `CODE` column land use classes and their corresponding buffer areas for each point in `file_sf`
 ################################################################################
 extract_lulc_parameters <- function(i, buffer, file_sf, lulc, data_lulc) {
   # Create a temp folder to store intermediate data
@@ -722,9 +722,9 @@ extract_road_vars <- function(buffer, file_sf, road) {
                       MoreArgs = list(y = road),
                       SIMPLIFY = FALSE, 
                       USE.NAMES = TRUE)
-  # Convert the above calculated lengths of roads in each buffer to a data frame
+  # Convert the above calculated lengths of roads in each buffer to a dataframe
   df_1 <- do.call(rbind, lapply(road_buffer, as.data.frame))
-  # Now convert the row names in each row as the first column of the data frame, this is to preserve the variable name for further use
+  # Now convert the row names in each row as the first column of the dataframe, this is to preserve the variable name for further use
   data_road <- cbind(buffer_m = rownames(df_1), df_1)
   # Extract the buffer length eg - roads 0.1 km, 1 km
   data_road$buffer_m_1 <- sub(".*roads_buffer_*(.*?) *m.*", "\\1", data_road$buffer_m)
