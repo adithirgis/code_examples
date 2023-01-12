@@ -523,6 +523,7 @@ derive_lulc_as_df <- function(df_lulc) {
 # data_final_selected_variables : dataframe with `CODE`, response variable, and the final model selected parameters only
 # response_variable : response variable like the PM2.5 etc
 # returns a dataframe with the `CODE` column and loocv r2, adjusted r2, and loocv prediction
+# the assumption here is that each row is a unique site and hence leaving that one row
 ################################################################################
 loop_loocv <- function(data_final_selected_variables, response_variable) {
   data_final_selected_variables <- data_final_selected_variables %>% 
@@ -550,6 +551,7 @@ loop_loocv <- function(data_final_selected_variables, response_variable) {
 # returns a dataframe with the `CODE` column and 10 fold r2, adjusted r2, and 10 fold prediction
 ################################################################################
 loop_kfold <- function(data_final_selected_variables, response_variable, k = 10) {
+  data_final_selected_variables <- na.omit(data_final_selected_variables)
   data_final_selected_variables <- data_final_selected_variables[sample(nrow(data_final_selected_variables)), ]
   folds <- cut(seq(1, nrow(data_final_selected_variables)), breaks = k, labels = FALSE)
   new_data <- data.frame()
@@ -561,6 +563,7 @@ loop_kfold <- function(data_final_selected_variables, response_variable, k = 10)
     cal_new_data$predicted_10fold <- predict(my_model, cal_new_data)
     cal_new_data$predicted_10fold_r2 <- summary(my_model)$r.squared
     cal_new_data$predicted_10fold_r2_adj <- summary(my_model)$adj.r.squared
+    cal_new_data$fold <- i
     new_data <- rbind(new_data, cal_new_data)
   }
   return(new_data)
