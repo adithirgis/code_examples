@@ -523,7 +523,7 @@ derive_lulc_as_df <- function(df_lulc) {
 # data_final_selected_variables : dataframe with `CODE`, response variable, and the final model selected parameters only
 # response_variable : response variable like the PM2.5 etc
 # returns a dataframe with the `CODE` column and loocv r2, adjusted r2, and loocv prediction
-# the assumption here is that each row is a unique site and hence leaving that one row
+# the assumption here is that each row is a unique site (or CODE) and hence leaving that one row / CODE
 ################################################################################
 loop_loocv <- function(data_final_selected_variables, response_variable) {
   data_final_selected_variables <- data_final_selected_variables %>% 
