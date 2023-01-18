@@ -119,6 +119,10 @@ class - renamed_as
 - https://code.earthengine.google.co.in/994671b6b43489fa6909bf8ba71fd094
 - https://code.earthengine.google.co.in/0180b79190550b390882cf933a53908a
 
+## Resources 
+
+- [Spatial Data Science in R](https://r-spatial.org/book/)
+
 ## LICENSE
 
 [Click here.](https://github.com/adithirgis/code_examples/blob/main/LICENSE)
