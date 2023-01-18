@@ -1,6 +1,6 @@
 ---
-title: "Land Use Regression modelling - example"
-author: "Adithi R Upadhya"
+title: "Land Use Regression modelling - a code example"
+author: "Adithi R. Upadhya"
 format:
   html:
     toc: true
