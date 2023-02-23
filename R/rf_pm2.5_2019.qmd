@@ -1,0 +1,255 @@
+---
+title: "Random Forest"
+author: "Adithi R Upadhya"
+format:
+  html:
+    toc: true
+    highlight-style: a11y
+    html-math-method: katex
+    code-copy: true
+    code-fold: true
+    code-tools: true
+    self-contained: true
+    theme:
+      light: flatly
+      dark: darkly
+execute:
+  warning: false
+  message: false
+---
+
+## Random Forest implementation for the PM2.5 data
+
+
+```{r}
+source(here::here("R", "functions.R"))
+library(ranger)
+library(caret)
+```
+
+```{r}
+#| echo: fenced
+#| label: define-projections
+wgs <- "+proj=longlat +datum=WGS84 +no_defs"
+UTM_proj <- "+proj=utm +zone=43 +datum=WGS84" 
+response_variable <- "PM2.5"
+varname <- sym("PM2.5")
+site_info <- "Delhi_site_lat_long_info.csv"
+table_doe <- "parameters_pm.csv"
+airport <- "airport_point.csv"
+railways <- "Delhi_railways.shp"
+delhi_industries <- "Delhi_Industry_Details.csv"
+dem_name <- "Delhi_SRTM_Elevation.tif"
+aod_name <- "Delhi_AOD_map_2019.tif"
+lulc_file_name <- "lulc_vars.csv"
+pop_file_name <- "pop_vars.csv"
+pm_data <- "yearly_avg_2018_2021.csv"
+resp <- "PM2.5"
+varname <- sym("PM2.5")
+frac <- 0.7
+```
+
+```{r}
+#| echo: fenced
+#| label: read-data-transform
+delhi_sites_df <- read.csv(here("data/Delhi_code_spatial_info", site_info)) %>% 
+  distinct(CODE, .keep_all = T) %>% 
+  mutate(lat = latitude, long = longitude)
+delhi_sites_sf <- convert_sf(delhi_sites_df, wgs, "longitude", "latitude")
+delhi_sites_proj <- convert_sf_proj(delhi_sites_df, wgs, UTM_proj, "longitude", "latitude") %>% 
+  dplyr::select(CODE, lat, long)
+
+direction_of_effect_table <- read_csv(here("data/direction_of_effect", table_doe)) %>% 
+  dplyr::select(param, sign, val)
+
+airport <- read_csv(here("data/airport", airport)) 
+airport_proj <- convert_sf_proj(airport, wgs, UTM_proj, "Longitude", "Latitude")
+filters_to_check <- c("stone cutting", "foundry", "metal fabrication",
+                      "rubber", "plastic", "electricals/metal fabrication/moulds", 
+                      "Paper & pulp", "machines", "glass works", "charcoal", 
+                      "RMC", "rice mill", "flyash bricks", "forging")
+industries <- read_csv(here::here("data/industries", delhi_industries)) %>% 
+  filter(Type %in% filters_to_check)
+industries_proj <- convert_sf_proj(industries, wgs, UTM_proj, "Long", "Lat")
+delhi_sites_proj_var <- extract_dist_variable(delhi_sites_proj, 
+                                            airport = airport_proj,
+                                            industries = industries_proj)
+
+railway_proj <- proj_sf(here("data/railways", railways), UTM_proj)
+buffering_railway <- lur_buffer_maker(name = "rail_buffer_", buffer_len = c(500, 1000, 5000))
+buffers <- buffer_points(buffering_railway, delhi_sites_proj)
+buffers_railway <- mapply(FUN = sf::st_intersection,
+                      x = buffers,
+                      MoreArgs = list(y = railway_proj),
+                      SIMPLIFY = FALSE, 
+                      USE.NAMES = TRUE)
+
+aod <- raster(here("data/AOD/interpolated", aod_name))
+dem <- raster(here("data/DEM", dem_name))
+
+delhi_sites_proj_var <- extract_raster(delhi_sites_proj_var, dem, aod, wgs, UTM_proj)
+
+df_railway <- extract_railway(buffering_railway, delhi_sites_proj_var, railway_proj)
+
+file_lulc <- read_csv(here::here("data/landuse", lulc_file_name))
+file_lulc <- file_lulc %>% 
+  dplyr::select(everything(), -`...1`) 
+df_lulc <- derive_lulc_as_df(file_lulc)
+
+df_pop <- read.csv(here::here("data/population", pop_file_name), sep = ",") 
+
+dataframe_all_params <- list(df_lulc, df_railway, df_pop) %>% 
+  reduce(left_join, by = "CODE") %>%
+  as.data.frame() %>% 
+  dplyr::select(where(~!all(is.na(.x)))) %>% 
+  mutate_if(is.numeric, ~replace_na(., 0)) 
+
+pollutant_data <- read.csv(here("data/training_data", pm_data)) %>% 
+  mutate(PM2.5 = as.numeric(as.character(pm25)),
+         CODE = site) %>% 
+  filter(year == 2019) %>% 
+  dplyr::select(CODE, !!!response_variable)
+  
+dataframe_all_params <- list(dataframe_all_params, delhi_sites_proj_var, pollutant_data) %>% 
+  reduce(left_join, by = "CODE") %>%
+  as.data.frame() %>% 
+  dplyr::select(CODE, lat, long, contains("ndvi"), everything(), 
+                -geometry) 
+```
+
+
+## Generate the data and split the data into train and test
+
+```{r}
+data_rf <- na.omit(dataframe_all_params)
+data_rf$id <- 1:nrow(data_rf)
+train <- data_rf %>% dplyr::sample_frac(frac) 
+test  <- dplyr::anti_join(data_rf, train, by = 'id')
+```
+
+## Fit a random forest model and optimize the hyper parameters through the OOB RMSE
+
+```{r}
+set.seed(108)
+train_n <- train %>% 
+    dplyr::select(everything(), -!!resp, - CODE, - id)
+others <- names(train_n)
+equ <- as.formula(paste(resp, paste(others, collapse = "+"), sep = " ~ "))
+
+rf_model_b <- ranger(as.formula(equ), data = train)
+print(rf_model_b)
+
+oob_rmse <- sqrt(mean(rf_model_b$prediction.error^2))
+print(paste0("OOB RMSE: ", oob_rmse))
+```
+
+## Optimize the number of trees (num.trees) and the number of variables being split at each node (mtry) using a grid search method
+
+```{r}
+set.seed(108)
+n_features <- length(others)
+
+hyper_grid <- expand.grid(
+  splitrule = c("extratrees"), 
+  max.depth = c(2, 5, 7, 8, 10),
+  num.trees = c(200, 400, 600, 800, 900), 
+  mtry = floor(n_features * c(.25, .333, .4, .5, .75, .9)),
+  min.node.size = c(3, 5, 10), 
+  replace = c(TRUE, FALSE),                               
+  sample.fraction = c(.5, .63, .8),                       
+  rmse = NA                                               
+)
+
+tune_rf <- function(hyper_grid, equ, train, resp) {
+  for(i in seq_len(nrow(hyper_grid))) {
+    fit <- ranger(
+      formula         = as.formula(equ), 
+      data            = train, 
+      num.trees       = hyper_grid$num.trees[i],
+      splitrule       = hyper_grid$splitrule[i],
+      mtry            = hyper_grid$mtry[i],
+      max.depth       = hyper_grid$max.depth[i],
+      min.node.size   = hyper_grid$min.node.size[i],
+      replace         = hyper_grid$replace[i],
+      sample.fraction = hyper_grid$sample.fraction[i],
+      verbose         = FALSE,
+      seed            = 108,
+      respect.unordered.factors = 'order',
+    )
+    hyper_grid$rmse[i] <- sqrt(fit$prediction.error)
+  }
+  hyper_grid$OOB_RMSE[i] <- sqrt(fit$prediction.error)   
+  hyper_grid$OOB_R2[i] <- fit$r.squared
+  # add test RMSE
+  pred_valid <- predict(fit, train) %>% predictions()
+  obs_valid <- (train[, resp] %>% as.data.frame())[, 1]
+  hyper_grid$valid_RMSE[i] <- (obs_valid - pred_valid) ^ 2 %>%
+    mean() %>% sqrt()
+  hyper_grid$valid_R2[i] <- 1 - mean((pred_valid-obs_valid) ^ 2) / var(obs_valid)
+  return(hyper_grid)
+}
+```
+
+## Get the optimized hyperparameters and train the RF
+
+```{r}
+hyper_grid <- tune_rf(hyper_grid, equ, train, resp)
+mtry <- hyper_grid[which.min(hyper_grid$OOB_RMSE),]$mtry
+num.trees <- hyper_grid[which.min(hyper_grid$OOB_RMSE),]$num.trees
+max.depth <- hyper_grid[which.min(hyper_grid$OOB_RMSE),]$max.depth
+sample.fraction <- hyper_grid[which.min(hyper_grid$OOB_RMSE),]$sample.fraction
+min.node.size <- hyper_grid[which.min(hyper_grid$OOB_RMSE),]$min.node.size
+  
+rf_model_f <- ranger(
+  formula = equ,
+  data = train,
+  num.trees = num.trees,
+  sample.fraction = sample.fraction,
+  max.depth = max.depth,
+  min.node.size = min.node.size,
+  mtry = mtry,
+  importance = 'impurity'          # 'permutation'
+)
+
+print(rf_model_f)
+```
+
+## Predict for the test data and calculate the required parameters
+
+```{r}
+df_all <- rbind(train %>% mutate(df_type = 'train'), 
+                test %>% mutate(df_type = 'test'))
+rf_result <- data.frame(rf = predict(rf_model_f, df_all) %>% predictions(),
+                        obs = df_all[, resp]) %>% 
+  mutate(res = obs - rf) %>% 
+  cbind(df_all %>% dplyr::select(-all_of(resp)))
+var_importance <- data.frame(var_name = rf_model_f$variable.importance %>% names, 
+                               vi = rf_model_f$variable.importance %>% as.numeric())
+var_importance <- var_importance[with(var_importance, order(-vi)), ]
+```
+
+## Variable Importance plot  
+
+```{r}
+ggplot(var_importance) +
+    geom_col(aes(reorder(var_name, vi), vi),
+             position = 'dodge', fill = 'khaki')+
+    coord_flip() +
+    theme_classic()+
+    labs(x = 'variable', y = 'importance value (impurity)')+
+    theme(axis.title = element_text(size = 11),
+          axis.text = element_text(size = 11),
+          legend.title = element_text(size = 11),
+          legend.text = element_text(size = 11),
+          strip.text.y = element_text(size = 11))
+```
+
+
+```{r}
+## Another way 
+
+# rf_model_tune <- train(equ, data = train, method = "rf", tuneGrid = hyper_grid, trControl = trainControl(method = "cv", number = 5),
+#                      importance = "impurity") # or permutation
+# print(rf_model_tune)
+```
+

@@ -98,7 +98,7 @@ direction_of_effect_table <- read_csv(here("data/direction_of_effect", "paramete
 ```{r}
 #| echo: fenced
 #| label: read-spatial-predictors
-airport <- read_csv(here("data/airport","airport_point.csv")) 
+airport <- read_csv(here("data/airport", "airport_point.csv")) 
 airport_proj <- convert_sf_proj(airport, wgs, UTM_proj, "Longitude", "Latitude")
 filters_to_check <- c("stone cutting", "foundry", "metal fabrication",
                       "rubber", "plastic", "electricals/metal fabrication/moulds", 
