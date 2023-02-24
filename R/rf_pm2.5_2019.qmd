@@ -25,6 +25,34 @@ execute:
 source(here::here("R", "functions.R"))
 library(ranger)
 library(caret)
+tune_rf <- function(hyper_grid, equ, train, resp) {
+  for(i in seq_len(nrow(hyper_grid))) {
+    fit <- ranger(
+      formula         = as.formula(equ), 
+      data            = train, 
+      num.trees       = hyper_grid$num.trees[i],
+      splitrule       = hyper_grid$splitrule[i],
+      mtry            = hyper_grid$mtry[i],
+      max.depth       = hyper_grid$max.depth[i],
+      min.node.size   = hyper_grid$min.node.size[i],
+      replace         = hyper_grid$replace[i],
+      sample.fraction = hyper_grid$sample.fraction[i],
+      verbose         = FALSE,
+      seed            = 108,
+      respect.unordered.factors = 'order',
+    )
+    hyper_grid$rmse[i] <- sqrt(fit$prediction.error)
+  }
+  hyper_grid$OOB_RMSE[i] <- sqrt(fit$prediction.error)   
+  hyper_grid$OOB_R2[i] <- fit$r.squared
+  # add test RMSE
+  pred_valid <- predict(fit, train) %>% predictions()
+  obs_valid <- (train[, resp] %>% as.data.frame())[, 1]
+  hyper_grid$valid_RMSE[i] <- (obs_valid - pred_valid) ^ 2 %>%
+    mean() %>% sqrt()
+  hyper_grid$valid_R2[i] <- 1 - mean((pred_valid-obs_valid) ^ 2) / var(obs_valid)
+  return(hyper_grid)
+}
 ```
 
 ```{r}
@@ -159,35 +187,6 @@ hyper_grid <- expand.grid(
   sample.fraction = c(.5, .63, .8),                       
   rmse = NA                                               
 )
-
-tune_rf <- function(hyper_grid, equ, train, resp) {
-  for(i in seq_len(nrow(hyper_grid))) {
-    fit <- ranger(
-      formula         = as.formula(equ), 
-      data            = train, 
-      num.trees       = hyper_grid$num.trees[i],
-      splitrule       = hyper_grid$splitrule[i],
-      mtry            = hyper_grid$mtry[i],
-      max.depth       = hyper_grid$max.depth[i],
-      min.node.size   = hyper_grid$min.node.size[i],
-      replace         = hyper_grid$replace[i],
-      sample.fraction = hyper_grid$sample.fraction[i],
-      verbose         = FALSE,
-      seed            = 108,
-      respect.unordered.factors = 'order',
-    )
-    hyper_grid$rmse[i] <- sqrt(fit$prediction.error)
-  }
-  hyper_grid$OOB_RMSE[i] <- sqrt(fit$prediction.error)   
-  hyper_grid$OOB_R2[i] <- fit$r.squared
-  # add test RMSE
-  pred_valid <- predict(fit, train) %>% predictions()
-  obs_valid <- (train[, resp] %>% as.data.frame())[, 1]
-  hyper_grid$valid_RMSE[i] <- (obs_valid - pred_valid) ^ 2 %>%
-    mean() %>% sqrt()
-  hyper_grid$valid_R2[i] <- 1 - mean((pred_valid-obs_valid) ^ 2) / var(obs_valid)
-  return(hyper_grid)
-}
 ```
 
 ## Get the optimized hyperparameters and train the RF
