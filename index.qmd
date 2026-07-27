@@ -1,5 +1,5 @@
 ---
-title: "Land Use Regression modelling - a code example"
+title: "Land Use Regression modelling - an example"
 author: "Adithi R. Upadhya"
 format:
   html:
@@ -22,6 +22,10 @@ execute:
 
 - Source the [functions.R](https://github.com/adithirgis/code_examples/blob/main/R/functions.R) file that has custom-functions and loads the required libraries. 
 - Data frames shown here are restricted to 5 observations. For detailed view check in RStudio after cloning this repository.
+
+::: {.callout-important}
+All spatial datasets must first be projected into the same CRS before distances are calculated.
+:::
 
 ```{r}
 #| echo: fenced
@@ -47,18 +51,25 @@ varname <- sym("PM2.5")
 
 ## Delhi sites data
 
-- Read the Delhi data, please make sure all training and predicting dataset has a **CODE** (this column is case sensitive as well) column to uniquely identify the points of training / or each site of interest.
-- The **CODE** is important and is used for deriving variables from Earth Engine as well, after we derive from various sources we use this column to join multiple predictors / variables dataframe. 
+- Read the Delhi data, please make sure all training and predicting dataset has a **CODE** (this column is case sensitive as well) a column to uniquely identify the points of training / or each site of interest.
+
+::: {.callout-note}
+The **CODE** is super important and is used for deriving variables from Earth Engine as well, after we derive from various sources we use this column to join multiple predictors / variables dataframe. 
+:::
 
 ```{r}
 #| echo: fenced
 #| label: read-data-transform
 delhi_sites_df <- read.csv(here("data/Delhi_code_spatial_info", "Delhi_site_lat_long_info.csv")) %>% 
-  distinct(CODE, .keep_all = T) %>% 
+  distinct(CODE, .keep_all = TRUE) %>% 
   mutate(lat = latitude, long = longitude)
-delhi_sites_sf <- convert_sf(delhi_sites_df, wgs, "longitude", "latitude")
-delhi_sites_proj <- convert_sf_proj(delhi_sites_df, wgs, UTM_proj, "longitude", "latitude") %>% 
+
+delhi_sites_sf <- convert_sf(delhi_sites_df, wgs, 
+                             "longitude", "latitude")
+delhi_sites_proj <- convert_sf_proj(delhi_sites_df, wgs, 
+                                    UTM_proj, "longitude", "latitude") %>% 
   dplyr::select(CODE, lat, long)
+
 delhi_sites_proj %>% 
   head() %>% 
   gt() %>% 
@@ -72,19 +83,65 @@ delhi_sites_proj %>%
 ```{r}
 #| echo: fenced
 #| label: view-delhi-sites
-tmap_mode("view")
-tm_basemap(leaflet::providers$Stamen.Toner, alpha = 0.2) + 
-  tm_shape(delhi_sites_proj) +
-  tm_dots(size = 0.1, col = "blue") 
+mapview(delhi_sites_proj)
+```
+
+```{mermaid}
+graph LR
+
+A[Raw GIS Data]
+B[Buffers]
+C[Feature Extraction]
+D[Variable Selection]
+E[LUR Model]
+F[Cross Validation]
+
+A --> B
+B --> C
+C --> D
+D --> E
+E --> F
 ```
 
 ## Load the table of desired direction of effect of the parameters
+
+- Green spaces are expected to have negative coefficients because they reduce pollution.
+- Road length variables are expected to increase pollution.
+- Elevation is expected to reduce concentrations.
+
+::: {.callout-note}
+The direction of effect table specifies the expected sign of each predictor before model fitting.
+:::
 
 ```{r}
 #| echo: fenced
 #| label: read-direction-of-effect-table
 direction_of_effect_table <- read_csv(here("data/direction_of_effect", "parameters_pm.csv")) %>% 
   dplyr::select(param, sign, val)
+
+direction_of_effect_table %>%
+  gt() %>%
+  cols_label(
+    param = "Parameter",
+    sign = "Expected direction",
+    val = "Threshold"
+  ) %>%
+  tab_header(
+    title = md("**Expected Direction of Effect**"),
+    subtitle = "Expected coefficient sign used for model evaluation"
+  ) %>%
+  data_color(
+    columns = sign,
+    fn = scales::col_factor(
+      palette = c("#d4edda", "#f8d7da"),
+      domain = c("<", ">")
+    )
+  ) %>%
+  tab_options(
+    table.font.size = px(14),
+    heading.title.font.size = px(18),
+    table.width = pct(80)
+  )
 ```
 
 
@@ -115,9 +172,18 @@ railway_proj <- proj_sf(here("data/railways", "Delhi_railways.shp"), UTM_proj)
 ```{r}
 #| echo: fenced
 #| label: view-railway-data
-tm_basemap(leaflet::providers$Stamen.Toner, alpha = 0.2) + 
-  tm_shape(railway_proj) +
-  tm_lines() 
+mapview(
+  delhi_sites_proj,
+  col.regions = "seagreen",
+  cex = 5,
+  layer.name = "Monitoring sites"
+) +
+mapview(
+  railway_proj,
+  color = "black",
+  lwd = 2,
+  layer.name = "Railway"
+) 
 ```
 
 ## View buffer of radius 1000 m (interactive map)
@@ -126,7 +192,8 @@ tm_basemap(leaflet::providers$Stamen.Toner, alpha = 0.2) +
 #| echo: fenced
 #| label: view-buffers
 
-buffering_railway <- lur_buffer_maker(name = "rail_buffer_", buffer_len = c(500, 1000, 5000))
+buffering_railway <- lur_buffer_maker(name = "rail_buffer_", 
+                                      buffer_len = c(500, 1000, 5000))
 buffers <- buffer_points(buffering_railway, delhi_sites_proj)
 buffers_railway <- mapply(FUN = sf::st_intersection,
                       x = buffers,
@@ -134,10 +201,19 @@ buffers_railway <- mapply(FUN = sf::st_intersection,
                       SIMPLIFY = FALSE, 
                       USE.NAMES = TRUE)
 
-
-tm_basemap(leaflet::providers$Stamen.Toner, alpha = 0.2) + 
-  tm_shape(buffers$rail_buffer_1000m) + 
-  tm_polygons()
+mapview(
+  delhi_sites_proj,
+  col.regions = "seagreen",
+  cex = 1,
+  layer.name = "Monitoring sites"
+) +
+mapview(
+  buffers$rail_buffer_1000m,
+  map.types = "CartoDB.Positron",
+  col.regions = "lightblue",
+  color = "blue",
+  lwd = 1
+)
 ```
 
 
@@ -149,11 +225,19 @@ tm_basemap(leaflet::providers$Stamen.Toner, alpha = 0.2) +
 #| echo: fenced
 #| label: view-railway-buffers
 
-tm_basemap(leaflet::providers$Stamen.Toner, alpha = 0.2) + 
-  tm_shape(buffers$rail_buffer_1000m) + 
-  tm_polygons() +
-  tm_shape(buffers_railway$rail_buffer_1000m) + 
-  tm_lines() 
+mapview(
+  buffers$rail_buffer_1000m,
+  alpha.regions = 0.2,
+  color = "blue",
+  lwd = 1,
+  legend = FALSE
+) +
+mapview(
+  buffers_railway$rail_buffer_1000m,
+  color = "red",
+  lwd = 2,
+  legend = FALSE
+)
 ```
 
 ## Extracting distance variables for all `CODE`
@@ -161,9 +245,10 @@ tm_basemap(leaflet::providers$Stamen.Toner, alpha = 0.2) +
 ```{r}
 #| echo: fenced
 #| label: extract-spatial-predictors
-delhi_sites_proj_var <- extract_dist_variable(delhi_sites_proj, 
-                                            airport = airport_proj,
-                                            industries = industries_proj)
+delhi_sites_proj_var <- 
+  extract_dist_variable(delhi_sites_proj, 
+                        airport = airport_proj,
+                        industries = industries_proj)
 delhi_sites_proj_var %>% 
   head() %>% 
   gt() %>% 
@@ -183,8 +268,8 @@ aod_name <- "Delhi_AOD_map_2019.tif"
 aod <- raster(here("data/AOD/interpolated", aod_name))
 dem <- raster(here("data/DEM", dem_name))
 
-delhi_sites_proj_var <- extract_raster(delhi_sites_proj_var, dem, aod, wgs, UTM_proj)
-
+delhi_sites_proj_var <- extract_raster(delhi_sites_proj_var, 
+                                       dem, aod, wgs, UTM_proj)
 ```
 
 ## Adding land use, population parameters
@@ -200,14 +285,17 @@ delhi_sites_proj_var <- extract_raster(delhi_sites_proj_var, dem, aod, wgs, UTM_
 lulc_file_name <- "lulc_vars.csv"
 pop_file_name <- "pop_vars.csv"
 
-df_railway <- extract_railway(buffering_railway, delhi_sites_proj_var, railway_proj)
+df_railway <- extract_railway(buffering_railway,
+                              delhi_sites_proj_var,
+                              railway_proj)
 
 file_lulc <- read_csv(here::here("data/landuse", lulc_file_name))
 file_lulc <- file_lulc %>% 
   dplyr::select(everything(), -`...1`) 
 df_lulc <- derive_lulc_as_df(file_lulc)
 
-df_pop <- read.csv(here::here("data/population", pop_file_name), sep = ",") 
+df_pop <- read.csv(here::here("data/population", pop_file_name), 
+                   sep = ",") 
 
 dataframe_all_params <- list(df_lulc, df_railway, df_pop) %>% 
   reduce(left_join, by = "CODE") %>%
@@ -215,7 +303,8 @@ dataframe_all_params <- list(df_lulc, df_railway, df_pop) %>%
   dplyr::select(where(~!all(is.na(.x)))) %>% 
   mutate_if(is.numeric, ~replace_na(., 0)) 
 
-pollutant_data <- read.csv(here("data/training_data", "yearly_avg_2018_2021.csv")) %>% 
+pollutant_data <- read.csv(here("data/training_data",
+                                "yearly_avg_2018_2021.csv")) %>% 
   mutate(PM2.5 = as.numeric(as.character(pm25)),
          CODE = site) %>% 
   filter(year == 2019) %>% 
@@ -232,7 +321,6 @@ dataframe_all_params %>%
   gt() %>% 
   tab_options(container.overflow.x = TRUE,
   container.overflow.y = TRUE)
-
 ```
 
 ## Performing univariate regression 
@@ -247,47 +335,71 @@ dataframe_all_params %>%
 - Extract the highest R^2^ and the parameter which has the highest R^2^.
 
 
-
 ```{r}
 #| echo: fenced
 #| label: univariate-regression
 dataframe_all_params <- dataframe_all_params %>% 
   dplyr::select(where(~!all(is.na(.x)))) %>% 
-  dplyr::select(CODE, !!!response_variable, lat, long, contains("ndvi"), everything())
+  dplyr::select(CODE, !!!response_variable, 
+                lat, long, contains("ndvi"), 
+                everything())
 
 col <- names(dataframe_all_params)[-c(1:2)]
-dataframe_all_params[, col] <- sapply(X = dataframe_all_params[, col],
-                        FUN = function(x) as.numeric(as.character(x)))
+dataframe_all_params[, col] <- 
+  sapply(X = dataframe_all_params[, col],
+         FUN = function(x)
+           as.numeric(as.character(x)))
 
-data_univariate_summary <- data.frame(matrix(ncol = 6, nrow = 0))
-x <- c("value", "slope", "intercept", "R2", "f_val", "p_val")
+data_univariate_summary <- tibble::tibble(
+  value = character(),
+  slope = numeric(),
+  intercept = numeric(),
+  R2 = numeric(),
+  f_val = numeric(),
+  p_val = numeric()
+)
+
+x <- c("value", "slope", "intercept", 
+       "R2", "f_val", "p_val")
 colnames(data_univariate_summary) <- x
 perc <- round(0.75 * nrow(dataframe_all_params))
+
+results <- vector("list", length(col))
+k <- 0
 for (i in col) { 
-  dataframe_all_params <- dataframe_all_params[vapply(dataframe_all_params, 
-                                                      function(x) length(unique(x)) > 1, 
-                                                      logical(1L))]
+  dataframe_all_params <- 
+    dataframe_all_params[vapply(dataframe_all_params, 
+                                function(x) length(unique(x)) > 1, 
+                                logical(1L))]
   if(i %in% colnames(dataframe_all_params)) {
     cou <- (dataframe_all_params %>% 
               group_by(!!!syms(i)) %>% 
               summarise(n = n()) %>% 
               filter(n == max(n)))$n[1]
     if(cou < perc) {
-      univariate_model <- lm(paste(response_variable, " ~ ", i), data = dataframe_all_params) 
-      slope <- summary(univariate_model)$coefficients[2, 1]
-      R2 <- summary(univariate_model)$adj.r.squared
-      f <- summary(univariate_model)$fstatistic
-      one_univardata_univariate_summary <- data.frame(value = as.character(i), slope, 
-                             intercept = summary(univariate_model)$coefficients[1, 1],
-                             R2, f_val = summary(univariate_model)$fstatistic[[1]], 
-                             p_val = pf(f[1], f[2], f[3], lower.tail = F)[[1]])
-      data_univariate_summary <- rbind(data_univariate_summary, one_univardata_univariate_summary)
+      form <- reformulate(i, response_variable)
+      univariate_model <- lm(form, data = dataframe_all_params)
+      k <- k + 1
+
+      model_summary <- summary(univariate_model)
+      f <- model_summary$fstatistic
+      results[[k]] <- tibble::tibble(
+        value = as.character(i), 
+        slope = model_summary$coefficients[2, 1],
+        intercept = model_summary$coefficients[1, 1],
+        R2 = model_summary$adj.r.squared,
+        f_val = model_summary$fstatistic[[1]], 
+        p_val = pf(f[1], f[2], f[3], lower.tail = FALSE)
+      )
      } else {
       data_univariate_summary <- data_univariate_summary
     }
-}}
+  }
+}
+data_univariate_summary <- dplyr::bind_rows(results[1:k])
 
-data_univariate_summary <- add_sign_check(data_univariate_summary, direction_of_effect_table)
+data_univariate_summary <- add_sign_check(data_univariate_summary, 
+                                          direction_of_effect_table)
 
 data_univariate_summary <- data_univariate_summary %>%
   filter(obj != FALSE)
@@ -295,11 +407,9 @@ data_univariate_summary <- data_univariate_summary %>%
 highest_para <- (data_univariate_summary %>% 
                    arrange(desc(R2)))$value[1]  
 original_para <- highest_para
-
 highest_r2 <- (data_univariate_summary %>% 
                    arrange(desc(R2)))$R2[1]
 original_r2 <- highest_r2
-
 ```
 ## Stepwise supervised linear regression
 
@@ -311,13 +421,19 @@ original_r2 <- highest_r2
 #| label: stepwise-supervised-linear-regression
 dataframe_all_params <- dataframe_all_params %>% 
   dplyr::select(CODE, !!!response_variable, everything())
-col_interest <- colnames(dataframe_all_params[, -c(1:2)])
-dataframe_all_params[, col_interest] <- sapply(X = dataframe_all_params[, col_interest],
-                                          FUN = function(x) as.numeric(as.character(x)))
 
-c(variable_list, change_in_r2, highest_r2, df_slope_info, df_r2_info) := 
-  run_lur_model(col_interest, original_para, original_r2, 
-                response_variable, dataframe_all_params, direction_of_effect_table, 0.01)
+col_interest <- colnames(dataframe_all_params[, -c(1:2)])
+dataframe_all_params[, col_interest] <- 
+  sapply(X = dataframe_all_params[, col_interest],
+         FUN = function(x) as.numeric(as.character(x)))
+
+c(variable_list, change_in_r2, 
+  highest_r2, df_slope_info, 
+  df_r2_info) := 
+  run_lur_model(col_interest, original_para, 
+                original_r2, response_variable, 
+                dataframe_all_params, 
+                direction_of_effect_table, 0.01)
 ```
 
 
@@ -347,9 +463,10 @@ df_r2_info %>%
 #| echo: fenced
 #| label: model-building
 others <- paste(variable_list, collapse = " + ")
-dataframe_selected_params <- dataframe_all_params[ , which(names(dataframe_all_params) 
-                                                           %in% c(variable_list, 
-                                                                  response_variable, "CODE"))]
+dataframe_selected_params <- 
+  dataframe_all_params[ , which(names(dataframe_all_params) 
+                                %in% c(variable_list, 
+                                       response_variable, "CODE"))]
 equ <- as.formula(paste(response_variable, others, sep = " ~ "))
 my_model_built <- lm(as.formula(equ), data = dataframe_selected_params)
 summary(my_model_built)
@@ -363,10 +480,16 @@ summary(my_model_built)
 ```{r}
 #| echo: fenced
 #| label: check-pvalue
-dataframe_selected_params_p <- remove_p_value(my_model_built, dataframe_selected_params, 0.1) 
-my_model_built <- create_model(dataframe_selected_params_p, response_variable)
+dataframe_selected_params_p <- remove_p_value(my_model_built, 
+                                              dataframe_selected_params, 
+                                              0.1) 
+
+my_model_built <- create_model(dataframe_selected_params_p, 
+                               response_variable)
 summary(my_model_built)
-data_to_check_for_direction_of_effect_after_cleaning <- vars(my_model_built, sig_star, direction_of_effect_table)
+
+data_to_check_for_direction_of_effect_after_cleaning <- 
+  vars(my_model_built, sig_star, direction_of_effect_table)
 ```
 
 ## Check `vif` of the model
@@ -380,10 +503,15 @@ data_to_check_for_direction_of_effect_after_cleaning <- vars(my_model_built, sig
 ```{r}
 #| echo: fenced
 #| label: check-vif
-dataframe_selected_params_p_vif <- vif_function(my_model_built, dataframe_selected_params_p, 3)
-my_model_built <- create_model(dataframe_selected_params_p_vif, response_variable)
+dataframe_selected_params_p_vif <- vif_function(my_model_built, 
+                                                dataframe_selected_params_p, 
+                                                3)
+my_model_built <- create_model(dataframe_selected_params_p_vif, 
+                               response_variable)
 summary(my_model_built)
-data_to_check_for_direction_of_effect_after_cleaning <- vars(my_model_built, sig_star, direction_of_effect_table)
+
+data_to_check_for_direction_of_effect_after_cleaning <- 
+  vars(my_model_built, sig_star, direction_of_effect_table)
 ```
 
 ## Cook's distance 
@@ -399,7 +527,10 @@ data_to_check_for_direction_of_effect_after_cleaning <- vars(my_model_built, sig
 cooks_dist <- as.data.frame(cooks.distance(my_model_built)) %>% 
   dplyr::select("CD" = `cooks.distance(my_model_built)`) %>% 
   filter(CD >= 1)
-plot(cooks.distance(my_model_built), ylab = "cook's distance", xlab = "observation")
+
+plot(cooks.distance(my_model_built), 
+     ylab = "cook's distance", 
+     xlab = "observation")
 no_rem <- nrow(cooks_dist)
 ```
 
@@ -413,10 +544,15 @@ no_rem <- nrow(cooks_dist)
 if(dim(cooks_dist)[1] == 0) {
   dataframe_selected_params_p_vif_cd <- dataframe_selected_params_p_vif
 } else {
-  dataframe_selected_params_p_vif_cd <- dataframe_selected_params_p_vif[-as.numeric(row.names(cooks_dist)), ]
-  dataframe_selected_params_p_vif_cd <- dataframe_selected_params_p_vif[as.numeric(row.names(cooks_dist)), ]
-  my_model_built <- create_model(dataframe_selected_params_p_vif_cd, response_variable)
-  data_to_check_for_direction_of_effect_after_cleaning <- vars(my_model_built, sig_star, direction_of_effect_table)
+  dataframe_selected_params_p_vif_cd <-
+    dataframe_selected_params_p_vif[-as.numeric(row.names(cooks_dist)), ]
+  dataframe_selected_params_p_vif_cd <-
+    dataframe_selected_params_p_vif[as.numeric(row.names(cooks_dist)), ]
+  
+  my_model_built <- create_model(dataframe_selected_params_p_vif_cd, 
+                                 response_variable)
+  data_to_check_for_direction_of_effect_after_cleaning <- 
+    vars(my_model_built, sig_star, direction_of_effect_table)
 }
 ```
 
@@ -430,7 +566,8 @@ if(dim(cooks_dist)[1] == 0) {
 ```{r}
 #| echo: fenced
 #| label: final-model
-final_model_built <- create_model(dataframe_selected_params_p_vif_cd, response_variable)
+final_model_built <- create_model(dataframe_selected_params_p_vif_cd, 
+                                  response_variable)
 summary(final_model_built)
 ```
 
@@ -441,13 +578,19 @@ summary(final_model_built)
 ```{r}
 #| echo: fenced
 #| label: loocv-model
-others <- names(dataframe_selected_params_p_vif_cd[, !names(dataframe_selected_params_p_vif_cd)
-                                                   %in% c(response_variable, "CODE")])
+others <- 
+  names(dataframe_selected_params_p_vif_cd[, 
+                                           !names(dataframe_selected_params_p_vif_cd)
+                                           %in% c(response_variable, "CODE")])
+
 equ <- as.formula(paste(response_variable, paste(others, collapse = "+"), sep = " ~ "))
+
 dataframe_selected_params_p_vif_cd_loocv <- loop_loocv(dataframe_selected_params_p_vif_cd, 
                                                        response_variable) %>% 
   dplyr::select(CODE, contains("predicted"))
-mean_adj_r2 <- mean(dataframe_selected_params_p_vif_cd_loocv$predicted_loocv_r2_adj, na.rm = T)
+
+mean_adj_r2 <- mean(dataframe_selected_params_p_vif_cd_loocv$predicted_loocv_r2_adj, 
+                    na.rm = TRUE)
 ```
 
 - The mean adjusted R^2^ for LOOCV is `r mean_adj_r2`.
@@ -465,15 +608,16 @@ mean_adj_r2 <- mean(dataframe_selected_params_p_vif_cd_loocv$predicted_loocv_r2_
 #| label: final-steps
 # saveRDS(all_data, "pm2.5_2019.rds")
 
-dataframe_selected_params_p_vif_cd$predicted_model <- predict(final_model_built, 
-                                                              newdata = dataframe_selected_params_p_vif_cd)
+dataframe_selected_params_p_vif_cd$predicted_model <- 
+  predict(final_model_built, newdata = dataframe_selected_params_p_vif_cd)
 
 cor.test(dataframe_selected_params_p_vif_cd$predicted_model, 
          dataframe_selected_params_p_vif_cd$PM2.5, method = "spearman")
 
 file_sf_season <- delhi_sites_df %>% 
   dplyr::select(CODE, lat, long) %>% 
-  left_join(., dataframe_selected_params_p_vif_cd, by = "CODE", suffix = c("", ".y")) %>% 
+  left_join(., dataframe_selected_params_p_vif_cd, 
+            by = "CODE", suffix = c("", ".y")) %>% 
   dplyr::select(-ends_with(".y")) %>%  
   mutate(residual = !!varname - predicted_model) %>% 
   st_as_sf(., coords = c("long", "lat"), crs = wgs) 
@@ -487,10 +631,13 @@ file_sf_season <- delhi_sites_df %>%
 ```{r}
 #| echo: fenced
 #| label: predicted_vs_observed
-ggplot(dataframe_selected_params_p_vif_cd, aes(x = !!varname, y = predicted_model)) + 
+ggplot(dataframe_selected_params_p_vif_cd, 
+       aes(x = !!varname, y = predicted_model)) + 
   geom_point() + geom_abline() + theme_classic() + 
-  scale_x_continuous(limits = c(0, NA)) + scale_y_continuous(limits = c(0, NA)) + 
-  labs(x = "observed", y = "predicted")
+  scale_x_continuous(limits = c(0, NA)) + 
+  scale_y_continuous(limits = c(0, NA)) + 
+  labs(x = "observed", y = "predicted") + 
+  theme_minimal()
 ```
 
 
