@@ -339,12 +339,32 @@ dataframe_all_params %>%
 ```{r}
 #| echo: fenced
 #| label: data-summary
+dataframe_all_params <- dataframe_all_params %>% 
+  dplyr::select(where(~!all(is.na(.x)))) %>% 
+  dplyr::select(CODE, !!!response_variable, 
+                lat, long, contains("ndvi"), 
+                everything())
+
+col <- names(dataframe_all_params)[-c(1:2)]
+dataframe_all_params[, col] <- 
+  sapply(X = dataframe_all_params[, col],
+         FUN = function(x)
+           as.numeric(as.character(x)))
+
 dataframe_all_params %>%
   dplyr::select(-c(CODE, lat, long)) %>%
+  mutate(across(everything(), as.numeric)) %>% 
   gtsummary::tbl_summary(
+    type = everything() ~ "continuous",
+    statistic = everything() ~
+      "{mean} ± {sd}; {median} ({p25}, {p75})",
     digits = everything() ~ 1
   )
 ```
+
+::: {.callout-note}
+Before fitting the land-use regression model, it is useful to examine correlations among predictor variables. Highly correlated predictors may introduce multicollinearity, resulting in unstable coefficient estimates and inflated standard errors. 
+:::
 
 
 - Here, we performed the univariate regression (ex: `PM2.5` vs `ndvi_buffer_200m`) to find out the parameter which has the highest R^2^ and the desired direction of effect.
@@ -360,18 +380,6 @@ dataframe_all_params %>%
 ```{r}
 #| echo: fenced
 #| label: univariate-regression
-dataframe_all_params <- dataframe_all_params %>% 
-  dplyr::select(where(~!all(is.na(.x)))) %>% 
-  dplyr::select(CODE, !!!response_variable, 
-                lat, long, contains("ndvi"), 
-                everything())
-
-col <- names(dataframe_all_params)[-c(1:2)]
-dataframe_all_params[, col] <- 
-  sapply(X = dataframe_all_params[, col],
-         FUN = function(x)
-           as.numeric(as.character(x)))
-
 data_univariate_summary <- tibble::tibble(
   value = character(),
   slope = numeric(),

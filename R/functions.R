@@ -887,7 +887,7 @@ extract_railway <- function(buffering_railway, file_sf_proj, railway) {
 #'   names to consider adding.
 #' @param original_para Character string, the name of the single predictor
 #'   with the highest univariate adjusted R^2 (and correct direction of
-#'   effect) -- the model's starting point.
+#'   effect) - the model's starting point.
 #' @param original_r2 Numeric, the univariate adjusted R^2 of
 #'   `original_para`.
 #' @param response_variable Character string naming the response column.
