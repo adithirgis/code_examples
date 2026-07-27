@@ -1,6 +1,9 @@
 pacman::p_load(testthat, sf, raster, dplyr)
 
 
+################################################################################
+# GM1()
+################################################################################
 test_that("GM1 computes the geometric mean correctly", {
   expect_equal(GM1(c(1, 2, 4, 8)), exp(mean(log(c(1, 2, 4, 8)))))
   expect_equal(GM1(c(2, 2, 2, 2)), 2)
@@ -13,6 +16,9 @@ test_that("GM1 handles NA according to na_rm", {
   expect_true(is.na(GM1(x, na_rm = FALSE)))
 })
 
+################################################################################
+# GSD1()
+################################################################################
 test_that("GSD1 computes the geometric standard deviation correctly", {
   x <- c(1, 2, 4, 8)
   expect_equal(GSD1(x), exp(sd(log(x))))
@@ -26,6 +32,9 @@ test_that("GSD1 handles NA according to na_rm", {
   expect_true(is.na(GSD1(x, na_rm = FALSE)))
 })
 
+################################################################################
+# CV1()
+################################################################################
 test_that("CV1 computes the coefficient of variation correctly", {
   x <- c(2, 4, 4, 4, 5, 5, 7, 9)
   expect_equal(CV1(x), sd(x) / mean(x))
@@ -38,6 +47,9 @@ test_that("CV1 handles NA according to na_rm", {
   expect_true(is.na(CV1(x, na_rm = FALSE)))
 })
 
+################################################################################
+# stderr()
+################################################################################
 test_that("stderr computes the standard error of the mean", {
   x <- c(2, 4, 4, 4, 5, 5, 7, 9)
   expect_equal(stderr(x), sqrt(var(x) / length(x)))
@@ -49,6 +61,9 @@ test_that("stderr respects na.rm", {
   expect_equal(stderr(x, na.rm = TRUE), sqrt(var(c(1, 2, 3)) / 3))
 })
 
+################################################################################
+# sig_star()
+################################################################################
 test_that("sig_star assigns the correct stars by p-value threshold", {
   expect_equal(sig_star(0.0001), "***")
   expect_equal(sig_star(0.0009), "***")
@@ -79,6 +94,9 @@ test_that("sig_star's documented NA/NULL/blank handling does not match its behav
   expect_equal(sig_star(" "), "***")
 })
 
+################################################################################
+# :=
+################################################################################
 test_that(":= assigns the whole rhs list, unwrapped, in the single-variable case", {
   ## Note: when only one variable is named on the left, the current
   ## implementation assigns the raw `rhs` (still a list) rather than its
@@ -117,7 +135,9 @@ make_model_data <- function(n = 30, seed = 1) {
     noise_buffer_500 = x3
   )
 }
-
+################################################################################
+# create_model()
+################################################################################
 test_that("create_model builds an lm using all predictors except CODE/response/predicted*", {
   df <- make_model_data()
   m <- create_model(df, "PM2.5")
@@ -154,6 +174,9 @@ test_that("create_model errors when no predictors remain", {
   expect_error(create_model(df, "PM2.5"), "No predictor variables remain")
 })
 
+################################################################################
+# remove_p_value()
+################################################################################
 test_that("remove_p_value drops columns whose predictor p-value exceeds the threshold", {
   df <- make_model_data()
   m <- create_model(df, "PM2.5")
@@ -184,6 +207,9 @@ test_that("remove_p_value validates its inputs", {
   expect_error(remove_p_value(m, df, -0.1), "between 0 and 1")
 })
 
+################################################################################
+# vif_function()
+################################################################################
 test_that("vif_function drops predictors above the VIF threshold", {
   set.seed(2)
   n <- 50
@@ -227,6 +253,9 @@ test_that("vif_function validates its inputs", {
   expect_error(vif_function(m2, df2, 5), "at least two predictors")
 })
 
+################################################################################
+# check_sign_from_table()
+################################################################################
 test_that("check_sign_from_table returns TRUE when val is NA (no constraint)", {
   expect_true(check_sign_from_table("<", slope = 5, val = NA))
 })
@@ -244,6 +273,9 @@ test_that("check_sign_from_table rejects an unrecognized comparison operator", {
   expect_error(check_sign_from_table("!=", slope = 1, val = 0), "must be one of")
 })
 
+################################################################################
+# add_sign_check()
+################################################################################
 test_that("add_sign_check derives param from value and flags direction correctly", {
   data_extracted <- tibble::tibble(
     value = c("tree_cover_buffer_500", "industry_buffer_1000"),
@@ -276,6 +308,9 @@ test_that("add_sign_check validates required columns", {
                "missing required")
 })
 
+################################################################################
+# extract_model_data()
+################################################################################
 test_that("extract_model_data returns coefficient stats joined with direction-of-effect flags", {
   df <- make_model_data()
   m <- create_model(df, "PM2.5")
@@ -305,6 +340,9 @@ test_that("extract_model_data validates its inputs", {
   expect_error(extract_model_data(m, sig_star, data.frame(param = "x")), "must contain columns")
 })
 
+################################################################################
+# loop_loocv()
+################################################################################
 test_that("loop_loocv adds one held-out prediction per row", {
   df <- make_model_data(n = 12)
   out <- loop_loocv(df, "PM2.5")
@@ -320,6 +358,9 @@ test_that("loop_loocv validates its inputs", {
   expect_error(loop_loocv(df[1, ], "PM2.5"), "at least two observations")
 })
 
+################################################################################
+# loop_kfold()
+################################################################################
 test_that("loop_kfold returns one row per observation with fold assignments", {
   df <- make_model_data(n = 20)
   out <- loop_kfold(df, "PM2.5", k = 5, seed = 42)
@@ -685,8 +726,14 @@ test_that("extract_road_filtered sums road lengths", {
     len = c(10, 20, 5)
   )
   out <- extract_road_filtered(dat)
-  expect_equal(out$`500`[1], 30)
-  expect_equal(out$`100`[2], 5)
+  expect_equal(
+    out$`500`[out$CODE == "A"],
+    30
+  )
+  expect_equal(
+    out$`100`[out$CODE == "B"],
+    5
+  )
 })
 
 test_that("extract_road_filtered ignores NA", {
@@ -794,4 +841,185 @@ test_that("seed is reproducible", {
   out1 <- tune_rf(grid, y ~ x1 + x2, train, "y", seed = 12)
   out2 <- tune_rf(grid, y ~ x1 + x2, train, "y", seed = 12)
   expect_equal(out1,out2)
+})
+
+################################################################################
+# Shared test objects
+################################################################################
+make_test_objects <- function() {
+  ## small raster
+  r <- raster(nrows = 5, ncols = 5,
+    xmn = 0, xmx = 50,
+    ymn = 0, ymx = 50,
+    crs = "+proj=utm +zone=33 +datum=WGS84"
+  )
+  values(r) <- rep(1:5, each = 5)
+  ## one monitoring point
+  pts <- st_as_sf(
+    data.frame(
+      CODE = "Site1",
+      x = 25,
+      y = 25
+    ),
+    coords = c("x", "y"),
+    crs = 32633
+  )
+  ## simple road
+  road <- st_sf(
+    fclass = "primary",
+    geometry = st_sfc(
+      st_linestring(
+        matrix(c(10, 25, 40, 25), ncol = 2, byrow = TRUE)
+      ), crs = 32633
+    )
+  )
+    buffer <- c(
+    roads_buffer_20m = 20
+  )
+  list(
+    raster = r,
+    pts = pts,
+    road = road,
+    buffer = buffer
+  )
+}
+
+################################################################################
+# extract_ndvi_parameters()
+################################################################################
+test_that("extract_ndvi_parameters writes csv", {
+  obj <- make_test_objects()
+  tmp <- tempfile(fileext = ".csv")
+  out <- extract_ndvi_parameters(
+    obj$buffer,
+    obj$pts,
+    obj$raster,
+    tmp
+  )
+  expect_true(file.exists(tmp))
+  expect_s3_class(out, "data.frame")
+  expect_true("CODE" %in% names(out))
+})
+
+test_that("extract_ndvi_parameters returns invisibly", {
+  obj <- make_test_objects()
+  tmp <- tempfile(fileext = ".csv")
+  expect_invisible(
+    extract_ndvi_parameters(
+      obj$buffer,
+      obj$pts,
+      obj$raster,
+      tmp
+    )
+  )
+})
+
+test_that("extract_ndvi_parameters validates inputs", {
+  obj <- make_test_objects()
+  expect_error(
+    extract_ndvi_parameters(
+      obj$buffer,
+      data.frame(),
+      obj$raster,
+      tempfile()
+    )
+  )
+  expect_error(
+    extract_ndvi_parameters(
+      obj$buffer,
+      obj$pts,
+      1,
+      tempfile()
+    )
+  )
+})
+
+################################################################################
+# extract_pop_vars()
+################################################################################
+test_that("extract_pop_vars writes csv", {
+  obj <- make_test_objects()
+  tmp <- tempfile(fileext = ".csv")
+  out <- extract_pop_vars(
+    obj$buffer,
+    obj$pts,
+    obj$raster,
+    tmp
+  )
+  expect_true(file.exists(tmp))
+  expect_s3_class(out, "data.frame")
+  expect_true(all(out[-1] >= 0))
+})
+
+test_that("extract_pop_vars validates inputs", {
+  obj <- make_test_objects()
+  expect_error(
+    extract_pop_vars(
+      obj$buffer,
+      data.frame(),
+      obj$raster,
+      tempfile()
+    )
+  )
+  expect_error(
+    extract_pop_vars(
+      obj$buffer,
+      obj$pts,
+      1,
+      tempfile()
+    )
+  )
+})
+
+################################################################################
+# extract_road_vars()
+################################################################################
+test_that("extract_road_vars returns sf", {
+  obj <- make_test_objects()
+  out <- extract_road_vars(
+    obj$buffer,
+    obj$pts,
+    obj$road
+  )
+  expect_s3_class(out, "sf")
+  expect_true(
+    all(
+      c(
+        "buffer_m",
+        "buffer_m_1",
+        "len"
+      ) %in% names(out)
+    )
+  )
+  expect_true(is.numeric(out$len))
+  expect_true(all(out$len >= 0))
+})
+
+test_that("extract_road_vars checks CRS", {
+  obj <- make_test_objects()
+  road2 <- st_transform(
+    obj$road,
+    4326
+  )
+  expect_error(
+    extract_road_vars(
+      obj$buffer,
+      obj$pts,
+      road2
+    ),
+    "same CRS"
+  )
+})
+
+test_that("extract_road_vars checks required columns", {
+  obj <- make_test_objects()
+  road2 <- obj$road
+  road2$fclass <- NULL
+  expect_error(
+    extract_road_vars(
+      obj$buffer,
+      obj$pts,
+      road2
+    )
+  )
 })

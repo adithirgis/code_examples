@@ -1063,68 +1063,9 @@ derive_lulc_as_df <- function(df_lulc) {
                 values_fill = 0)
 }
 
-#' Extract LULC buffer areas for one site (ESA WorldCover, 10 m)
-#'
-#' For a single site (row `i` of `file_sf`), masks and crops the LULC raster
-#' to each buffer radius in `buffer`, then computes the area of each land-use
-#' class present within that buffer.
-#'
-#' @param i Integer row index of the site (within `file_sf`) to process.
-#' @param buffer Named numeric vector of buffer radii, from
-#'   `lur_buffer_maker()`.
-#' @param file_sf A projected `sf` (multi)point object with a `CODE` column.
-#' @param lulc A `raster` object: ESA WorldCover (or similar) land-use/land
-#'   cover layer, 10 m resolution.
-#' @param data_lulc Data frame to append this site's results onto (typically
-#'   an empty `data.frame()` on the first call, then the accumulating result
-#'   passed back in on subsequent calls in a calling loop).
-#'
-#' @return `data_lulc` with additional rows for site `i`: columns `CODE`,
-#'   `Area`, `variable` (class code + buffer name), `Group.1` (raw class
-#'   code).
-extract_lulc_parameters <- function(i, buffer, file_sf, lulc, data_lulc) {
-  if (!inherits(file_sf, "sf")) {
-    stop("`file_sf` must be an sf object.", call. = FALSE)
-  }
-  if (!inherits(lulc, "Raster")) {
-    stop("`lulc` must be a raster object.", call. = FALSE)
-  }
-  if (!"CODE" %in% names(file_sf)) {
-    stop("`file_sf` must contain a `CODE` column.", call. = FALSE)
-  }
-  ## Create a temp folder to store intermediate data
-  ## Code to reduce burden of c drive, make a temp folder in D drive and unlink the folder each time, saves space
-  OWNER <- "del"
-  dir.create(file.path("D:/", OWNER), showWarnings = FALSE)
-  raster::rasterOptions(tmpdir = file.path("D:/", OWNER))
-  ## Generate the buffers for each point
-  ## width is the radius from the center
-  ## Generate buffers of the above specified length for each of the multipoint observation
-  buffers <- buffer_points(buffer, file_sf[i, ])
-  lulc_clip_buffer <- mapply(FUN = raster::mask,
-                             mask = buffers,
-                             MoreArgs = list(x = lulc),
-                             SIMPLIFY = FALSE, 
-                             USE.NAMES = TRUE)
-  for(buffer_name in names(lulc_clip_buffer)) {
-    ## Crop the masked raster using each of the buffers and the buffer masked lulc one by one
-    cropped_lulc <- raster::crop(lulc_clip_buffer[[buffer_name]], buffers[[buffer_name]])
-    ## Calculate area / mean / sum for each land use type and track the buffer and type of land use
-    lulc_summary <- as.data.frame(raster::aggregate(raster::getValues(raster::area(cropped_lulc, weights = FALSE)), 
-                                               by = list(raster::getValues(cropped_lulc)), FUN = sum)) %>% 
-      mutate(CODE = file_sf[i, "CODE"][[1]], variable = paste0(Group.1, "_", buffer_name)) %>% 
-      dplyr::select(CODE, "Area" = x, variable, Group.1) %>% 
-      filter(Group.1 != 0)
-    ## bind for all the buffers and all other the points / CODE / observations
-    data_lulc <- bind_rows(data_lulc, lulc_summary)
-  }
-  data_lulc
-}
-
 #' Pivot extracted LULC data to wide form and write to CSV
 #'
-#' @param data_lulc Data frame produced by
-#'   `extract_lulc_parameters()`.
+#' @param data_lulc Data frame which has `CODE` column and landcover_buffer_m.
 #' @param name File path where the CSV will be written.
 #'
 #' @return Invisibly returns the data frame written to `name`.
@@ -1194,7 +1135,6 @@ extract_ndvi_parameters <- function(buffer, file_sf, ndvi, name,
   old_options <- raster::rasterOptions(tmpdir = tmp_dir)
   on.exit({
     raster::rasterOptions(tmpdir = old_options$tmpdir)
-    unlink(tmp_dir, recursive = TRUE)
   }, add = TRUE)  
   data_ndvi <- data.frame()
   for(i in seq_len(nrow(file_sf))) {
@@ -1256,11 +1196,10 @@ extract_pop_vars <- function(buffer, file_sf, pop, name,
   old_options <- raster::rasterOptions(tmpdir = tmp_dir)
   on.exit({
     raster::rasterOptions(tmpdir = old_options$tmpdir)
-    unlink(tmp_dir, recursive = TRUE)
   }, add = TRUE)  
   data_population <- data.frame()
   for(i in seq_len(nrow(file_sf))) {
-    buffers <- buffer_points(buffering, file_sf[i, ])
+    buffers <- buffer_points(buffer, file_sf[i, ])
     pop_buffer <- mapply(FUN = raster::mask,
                          mask = buffers,
                          MoreArgs = list(x = pop),
