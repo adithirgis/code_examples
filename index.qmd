@@ -357,7 +357,7 @@ dataframe_all_params %>%
   gtsummary::tbl_summary(
     type = everything() ~ "continuous",
     statistic = everything() ~
-      "{mean} ± {sd}; {median} ({p25}, {p75})",
+      "{mean}; {sd}; {median} ({p25}, {p75})",
     digits = everything() ~ 1
   )
 ```
