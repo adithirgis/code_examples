@@ -98,9 +98,6 @@ class - renamed_as
 #### Geostatistical model:
   - [`Geographically weighted regression`](https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1538-4632.1996.tb00936.x) using [`GWmodel`](https://cran.r-project.org/web/packages/GWmodel/GWmodel.pdf)
 
-## Session information and package versions 
-
-![\label{fig:session_info}](img/session_info.jpg)
 
 ## Earth Engine parameter download links
 
