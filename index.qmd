@@ -31,6 +31,15 @@ All spatial datasets must first be projected into the same CRS before distances 
 #| echo: fenced
 #| label: load-libraries
 source(here::here("R", "functions.R"))
+theme_lur <- function() {
+  theme_minimal(base_size = 14) +
+    theme(
+      panel.grid.minor = element_blank(),
+      legend.position = "bottom",
+      plot.title = element_text(face = "bold"),
+      axis.title = element_text(face = "bold")
+    )
+}
 ```
 
 
@@ -86,23 +95,6 @@ delhi_sites_proj %>%
 mapview(delhi_sites_proj)
 ```
 
-```{mermaid}
-graph LR
-
-A[Raw GIS Data]
-B[Buffers]
-C[Feature Extraction]
-D[Variable Selection]
-E[LUR Model]
-F[Cross Validation]
-
-A --> B
-B --> C
-C --> D
-D --> E
-E --> F
-```
-
 ## Load the table of desired direction of effect of the parameters
 
 - Green spaces are expected to have negative coefficients because they reduce pollution.
@@ -110,7 +102,7 @@ E --> F
 - Elevation is expected to reduce concentrations.
 
 ::: {.callout-note}
-The direction of effect table specifies the expected sign of each predictor before model fitting.
+The direction of effect table specifies the expected sign of each predictor before model fitting. The direction-of-effect table specifies whether each predictor is expected to increase or decrease PM2.5 according to previous literature.
 :::
 
 ```{r}
@@ -144,6 +136,25 @@ direction_of_effect_table %>%
   )
 ```
 
+## Methodology
+
+```{mermaid}
+graph LR
+
+A[Raw GIS Data]
+B[Generate Buffers]
+C[Extract GIS predictors]
+D[Feature Selection]
+E[LUR Modelling]
+F[Validation]
+
+A --> B
+B --> C
+C --> D
+D --> E
+E --> F
+```
+
 
 ## Reading in other spatial predictors
 
@@ -174,7 +185,7 @@ railway_proj <- proj_sf(here("data/railways", "Delhi_railways.shp"), UTM_proj)
 #| label: view-railway-data
 mapview(
   delhi_sites_proj,
-  col.regions = "seagreen",
+  col.regions = "purple",
   cex = 5,
   layer.name = "Monitoring sites"
 ) +
@@ -203,14 +214,14 @@ buffers_railway <- mapply(FUN = sf::st_intersection,
 
 mapview(
   delhi_sites_proj,
-  col.regions = "seagreen",
+  col.regions = "purple",
   cex = 1,
   layer.name = "Monitoring sites"
 ) +
 mapview(
   buffers$rail_buffer_1000m,
   map.types = "CartoDB.Positron",
-  col.regions = "lightblue",
+  col.regions = "white",
   color = "blue",
   lwd = 1
 )
@@ -234,7 +245,7 @@ mapview(
 ) +
 mapview(
   buffers_railway$rail_buffer_1000m,
-  color = "red",
+  color = "black",
   lwd = 2,
   legend = FALSE
 )
@@ -325,11 +336,22 @@ dataframe_all_params %>%
 
 ## Performing univariate regression 
 
-- Here, we performed the univariate regression (ex: `PM~2.5~` vs `ndvi_buffer_200m`) to find out the parameter which has the highest R^2^ and the desired direction of effect.
+```{r}
+#| echo: fenced
+#| label: data-summary
+dataframe_all_params %>%
+  dplyr::select(-c(CODE, lat, long)) %>%
+  gtsummary::tbl_summary(
+    digits = everything() ~ 1
+  )
+```
+
+
+- Here, we performed the univariate regression (ex: `PM2.5` vs `ndvi_buffer_200m`) to find out the parameter which has the highest R^2^ and the desired direction of effect.
 - We created an empty dataframe `data_univariate_summary` to add the values for univariate regression.
 - We also checked for continuous repeated values in the columns using a data frame `cou`.
 - We check if a column has more than one non-zero or non-NA value to build the model.
-- This step is necessary as we have replaced NA values with 0 and also we need more than one value to build a linear model.
+- This step is necessary as we have replaced `NA` values with `0` and also we need more than one value to build a linear model.
 - Check if column exists after cleaning and then in an iterative way perform univariate regression.
 - Apply `add_sign_check` to the `data_univariate_summary` / univariate regression table we generated, keep the variables where the desired direction / sign of effect is preserved. 
 - Extract the highest R^2^ and the parameter which has the highest R^2^.
@@ -637,7 +659,7 @@ ggplot(dataframe_selected_params_p_vif_cd,
   scale_x_continuous(limits = c(0, NA)) + 
   scale_y_continuous(limits = c(0, NA)) + 
   labs(x = "observed", y = "predicted") + 
-  theme_minimal()
+  theme_lur()
 ```
 
 
