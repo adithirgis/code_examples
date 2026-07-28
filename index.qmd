@@ -797,3 +797,6 @@ ggplot(dataframe_selected_params_p_vif_cd,
 - Some variables contain missing observations.
 - Results represent associations rather than causal relationships.
 - Publication bias cannot be completely ruled out.
+
+## References
+- Agrawal, P., Upadhya, A. R., Srishti, S., Kalshetty, M., Kulkarni, P., Kushwaha, M., & Sreekanth, V. (2024). Development of Land Use Regression (LUR) models and high-resolution spatial mapping of criteria air pollutants: Leveraging Delhi's continuous air monitoring network and remote sensing data. Environmental Pollution. Doi: https://doi.org/10.1016/j.envpol.2024.124444
