@@ -207,17 +207,21 @@ gt(df)
 graph LR
 
 A[Raw GIS Data]
-B[Generate Buffers]
-C[Extract GIS predictors]
-D[Feature Selection]
-E[LUR Modelling]
-F[Validation]
+B[Extract GIS predictors]
+C[Generate Buffers]
+D[Correlation screening]
+E[Forward stepwise selection]
+F[LUR Modelling]
+G[Validation]
+H[Final LUR model]
 
 A --> B
 B --> C
 C --> D
 D --> E
 E --> F
+F --> G
+G --> H
 ```
 
 
@@ -565,6 +569,7 @@ df_r2_info %>%
   container.overflow.y = TRUE)
 ```
 
+
 ## Model building
 
 - Select relevant variables to make a new dataframe / df `dataframe_selected_params` from the orignal all parameter / variable list `dataframe_all_params`. 
@@ -580,8 +585,17 @@ dataframe_selected_params <-
                                 %in% c(variable_list, 
                                        response_variable, "CODE"))]
 equ <- as.formula(paste(response_variable, others, sep = " ~ "))
-my_model_built <- lm(as.formula(equ), data = dataframe_selected_params)
-summary(my_model_built)
+my_model_built <- lm(as.formula(equ), 
+                     data = dataframe_selected_params)
+
+tidy(my_model_built, conf.int = TRUE) %>% 
+  gt() %>% 
+  tab_options(
+  table.font.size = px(13),
+  data_row.padding = px(3)
+  ) %>% 
+  tab_options(container.overflow.x = TRUE,
+  container.overflow.y = TRUE)
 ```
 
 ## Check `p-value` of the model
@@ -598,7 +612,15 @@ dataframe_selected_params_p <- remove_p_value(my_model_built,
 
 my_model_built <- create_model(dataframe_selected_params_p, 
                                response_variable)
-summary(my_model_built)
+
+tidy(my_model_built, conf.int = TRUE) %>% 
+  gt() %>% 
+  tab_options(
+  table.font.size = px(13),
+  data_row.padding = px(3)
+  ) %>% 
+  tab_options(container.overflow.x = TRUE,
+  container.overflow.y = TRUE)
 
 data_to_check_for_direction_of_effect_after_cleaning <- 
   vars(my_model_built, sig_star, direction_of_effect_table)
@@ -620,7 +642,15 @@ dataframe_selected_params_p_vif <- vif_function(my_model_built,
                                                 3)
 my_model_built <- create_model(dataframe_selected_params_p_vif, 
                                response_variable)
-summary(my_model_built)
+
+tidy(my_model_built, conf.int = TRUE) %>% 
+  gt() %>% 
+  tab_options(
+  table.font.size = px(13),
+  data_row.padding = px(3)
+  ) %>% 
+  tab_options(container.overflow.x = TRUE,
+  container.overflow.y = TRUE)
 
 data_to_check_for_direction_of_effect_after_cleaning <- 
   vars(my_model_built, sig_star, direction_of_effect_table)
@@ -680,7 +710,15 @@ if(dim(cooks_dist)[1] == 0) {
 #| label: final-model
 final_model_built <- create_model(dataframe_selected_params_p_vif_cd, 
                                   response_variable)
-summary(final_model_built)
+
+tidy(final_model_built, conf.int = TRUE) %>% 
+  gt() %>% 
+  tab_options(
+  table.font.size = px(13),
+  data_row.padding = px(3)
+  ) %>% 
+  tab_options(container.overflow.x = TRUE,
+  container.overflow.y = TRUE)
 ```
 
 ## Leave One Out Cross Validation (LOOCV)
@@ -753,4 +791,9 @@ ggplot(dataframe_selected_params_p_vif_cd,
 ```
 
 
+## Limitations 
 
+- Geographic representation is uneven.
+- Some variables contain missing observations.
+- Results represent associations rather than causal relationships.
+- Publication bias cannot be completely ruled out.

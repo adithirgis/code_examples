@@ -1,4 +1,4 @@
-pacman::p_load(dplyr, tidyr, purrr, stringr, sf, leaflet, 
+pacman::p_load(dplyr, tidyr, purrr, stringr, sf, leaflet, broom,
                car, here, ggplot2, rlang, readr, mapview,
                readxl, raster, caret, gt, ranger, tibble)
 
