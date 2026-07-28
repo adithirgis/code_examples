@@ -72,6 +72,26 @@ response_variable <- "PM2.5"
 varname <- sym("PM2.5")
 ```
 
+## Data introduction
+
+- Number of monitoring sites: 40
+
+- Predictor variables: 44
+
+- Response variable: PM2.5
+
+- Missing values: 5
+
+| Category    | Number |
+| ----------- | -----: |
+| Land-use    |     25 |
+| Railway     |      3 |
+| Population  |      4 |
+| NDVI        |      5 |
+| Meteorology |      4 |
+| Geographic  |      3 |
+
+
 ## Delhi sites data
 
 - Read the Delhi data, please make sure all training and predicting dataset has a **CODE** (this column is case sensitive as well) a column to uniquely identify the points of training / or each site of interest.
@@ -96,6 +116,10 @@ delhi_sites_proj <- convert_sf_proj(delhi_sites_df, wgs,
 delhi_sites_proj %>% 
   head() %>% 
   gt() %>% 
+  tab_options(
+  table.font.size = px(13),
+  data_row.padding = px(3)
+  ) %>% 
   tab_options(container.overflow.x = TRUE,
   container.overflow.y = TRUE)
 ```
@@ -111,6 +135,10 @@ mapview(delhi_sites_proj)
 
 ## Load the table of desired direction of effect of the parameters
 
+::: {.callout-important}
+The direction-of-effect table specifies whether each predictor is expected to increase or decrease pollutant concentrations based on prior knowledge and published literature. During model development, these expected signs are compared with the estimated regression coefficients to help identify predictors that may be statistically significant but environmentally implausible.
+:::
+
 - Green spaces are expected to have negative coefficients because they reduce pollution.
 - Road length variables are expected to increase pollution.
 - Elevation is expected to reduce concentrations.
@@ -122,32 +150,55 @@ The direction of effect table specifies the expected sign of each predictor befo
 ```{r}
 #| echo: fenced
 #| label: read-direction-of-effect-table
-direction_of_effect_table <- read_csv(here("data/direction_of_effect", "parameters_pm.csv")) %>% 
+direction_of_effect_table <-
+  read_csv(here("data/direction_of_effect", 
+                "parameters_pm.csv")) %>% 
   dplyr::select(param, sign, val)
+```
 
-direction_of_effect_table %>%
-  gt() %>%
-  cols_label(
-    param = "Parameter",
-    sign = "Expected direction",
-    val = "Threshold"
-  ) %>%
-  tab_header(
-    title = md("**Expected Direction of Effect**"),
-    subtitle = "Expected coefficient sign used for model evaluation"
-  ) %>%
-  data_color(
-    columns = sign,
-    fn = scales::col_factor(
-      palette = c("#d4edda", "#f8d7da"),
-      domain = c("<", ">")
-    )
-  ) %>%
-  tab_options(
-    table.font.size = px(14),
-    heading.title.font.size = px(18),
-    table.width = pct(80)
+```{r}
+#| echo: FALSE
+#| label: table
+df <- tibble(
+  Category = c(
+    "\U1F333 Land use",
+    "\U1F333 Land use",
+    "\U1F6E3 Transport",
+    "\U1F686 Transport",
+    "\U1F465 Population",
+    "\U2708 Emission source",
+    "\U1F33F Environmental"
+  ),
+  Predictor = c(
+    "Tree cover",
+    "Built-up area",
+    "Road length",
+    "Railway length",
+    "Population density",
+    "Airport distance",
+    "NDVI"
+  ),
+  `Expected Effect` = c(
+    "\u2193 PM\u2082.\u2085",
+    "\u2191 PM\u2082.\u2085",
+    "\u2191 PM\u2082.\u2085",
+    "\u2191 PM\u2082.\u2085",
+    "\u2191 PM\u2082.\u2085",
+    "\u2193 PM\u2082.\u2085 with increasing distance",
+    "\u2193 PM\u2082.\u2085"
+  ),
+  Why = c(
+    "Vegetation enhances pollutant deposition and dispersion.",
+    "Urbanized areas generally increase emissions and pollutant accumulation.",
+    "Higher traffic density leads to increased vehicle emissions.",
+    "Rail operations and associated transport activities contribute to emissions.",
+    "Greater human activity is typically associated with higher emissions.",
+    "Pollutant concentrations generally decrease farther from airport emission sources.",
+    "Greener surroundings promote pollutant removal and improve air quality."
   )
+)
+
+gt(df)
 ```
 
 ## Methodology
@@ -176,6 +227,10 @@ E --> F
 2. Industries coordinates in the object `industries`;
 3. Railways in the `railway_proj` object which is projected;
 4. Convert all of them to projected coordinate system.
+
+::: {.callout-note}
+Predictors like land use, NDVI, NTLI are extracted using circular buffers centred on each monitoring site.
+:::
 
 ```{r}
 #| echo: fenced
@@ -211,7 +266,8 @@ mapview(
 ) 
 ```
 
-## View buffer of radius 1000 m (interactive map)
+## Railway length within 1000m (buffer of radius 1000m: interactive map)
+
 
 ```{r}
 #| echo: fenced
@@ -277,6 +333,10 @@ delhi_sites_proj_var <-
 delhi_sites_proj_var %>% 
   head() %>% 
   gt() %>% 
+  tab_options(
+  table.font.size = px(13),
+  data_row.padding = px(3)
+  ) %>% 
   tab_options(container.overflow.x = TRUE,
   container.overflow.y = TRUE)
 ```
@@ -344,6 +404,10 @@ dataframe_all_params <- list(dataframe_all_params, delhi_sites_proj_var, polluta
 dataframe_all_params %>% 
   head() %>% 
   gt() %>% 
+  tab_options(
+  table.font.size = px(13),
+  data_row.padding = px(3)
+  ) %>% 
   tab_options(container.overflow.x = TRUE,
   container.overflow.y = TRUE)
 ```
@@ -493,6 +557,10 @@ c(variable_list, change_in_r2,
 df_r2_info %>% 
   arrange(desc(r2)) %>% 
   gt() %>% 
+  tab_options(
+  table.font.size = px(13),
+  data_row.padding = px(3)
+  ) %>% 
   tab_options(container.overflow.x = TRUE,
   container.overflow.y = TRUE)
 ```
@@ -677,7 +745,7 @@ file_sf_season <- delhi_sites_df %>%
 #| label: predicted_vs_observed
 ggplot(dataframe_selected_params_p_vif_cd, 
        aes(x = !!varname, y = predicted_model)) + 
-  geom_point() + geom_abline() + theme_classic() + 
+  geom_point() + geom_abline() +  
   scale_x_continuous(limits = c(0, NA)) + 
   scale_y_continuous(limits = c(0, NA)) + 
   labs(x = "observed", y = "predicted") + 
