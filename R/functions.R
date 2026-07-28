@@ -235,7 +235,9 @@ add_sign_check <- function(data_extracted,
     )
   }
   data_extracted$param <- sub("_buffer.*", "\\1", data_extracted$value)
-  data_extracted <- left_join(data_extracted, direction_of_effect_table, by = "param")
+  data_extracted <- left_join(data_extracted, direction_of_effect_table, 
+                              by = "param")
+  data_extracted$obj <- logical(nrow(data_extracted))
   for(i in seq_len(nrow(data_extracted))) {
     data_extracted$obj[i] <- check_sign_from_table(data_extracted$sign[i], 
                                                    as.numeric(as.character(data_extracted$slope[i])), 
@@ -915,6 +917,71 @@ run_lur_model <- function(col_interest, original_para,
                           data_with_variables, 
                           direction_of_effect_table, 
                           change_val) {
+  if (!is.character(col_interest) || length(col_interest) < 1) {
+    stop(
+      "`col_interest` must be a non-empty character vector.",
+      call. = FALSE
+    )
+  }
+  if (!is.character(original_para) || length(original_para) != 1) {
+    stop(
+      "`original_para` must be a single character string.",
+      call. = FALSE
+    )
+  }
+  if (!is.numeric(original_r2) || length(original_r2) != 1) {
+    stop(
+      "`original_r2` must be a single numeric value.",
+      call. = FALSE
+    )
+  }
+  if (!is.character(response_variable) ||
+      length(response_variable) != 1) {
+    stop(
+      "`response_variable` must be a single character string.",
+      call. = FALSE
+    )
+  }
+  if (!is.data.frame(data_with_variables)) {
+    stop(
+      "`data_with_variables` must be a data frame.",
+      call. = FALSE
+    )
+  }
+  if (!response_variable %in% names(data_with_variables)) {
+    stop(
+      "`response_variable` is not a column in `data_with_variables`.",
+      call. = FALSE
+    )
+  }
+  missing_cols <- setdiff(
+    c(col_interest, original_para),
+    names(data_with_variables)
+  )
+  if (length(missing_cols) > 0) {
+    stop(
+      "Missing predictor columns: ",
+      paste(missing_cols, collapse = ", "),
+      call. = FALSE
+    )
+  }
+  required_cols <- c("param", "sign", "val")
+  if (!all(required_cols %in%
+           names(direction_of_effect_table))) {
+    stop(
+      "`direction_of_effect_table` must contain columns: ",
+      paste(required_cols, collapse = ", "),
+      call. = FALSE
+    )
+  }
+  if (!is.numeric(change_val) ||
+      length(change_val) != 1 ||
+      change_val < 0) {
+    stop(
+      "`change_val` must be a single non-negative numeric value.",
+      call. = FALSE
+    )
+  }
   ## Make an empty dataframe and try to extract results 
   data_with <- data.frame()
   ## keep track of all the variables with the right direction of effect
@@ -950,7 +1017,7 @@ run_lur_model <- function(col_interest, original_para,
           data_corr <- data_corr %>% 
             mutate(r2 = round(summary(lm_step)$adj.r.squared, 4), aic = round(AIC(lm_step), 4), 
                    rmse = summary(lm_step)$sigma, eqtn = others)
-          data_with <- rbind(data_with, data_corr)
+          data_with <- bind_rows(data_with, data_corr)
         } else {
           data_with <- data_with
         }
@@ -979,8 +1046,8 @@ run_lur_model <- function(col_interest, original_para,
       break
     } else {
       ## Or else keep tracking the data
-      data_r2 <- rbind(data_r2, highest_para)
-      data_wo_slop_a <- rbind(data_wo_slop_a, data_wo_slope)
+      data_r2 <- bind_rows(data_r2, highest_para)
+      data_wo_slop_a <- bind_rows(data_wo_slop_a, data_wo_slope)
       ## Check if the R2 changed then replace the highest r2 with the new one otherwise keep the same
       if(highest_r2_l > highest_r2) {
         highest_r2 <- highest_r2_l

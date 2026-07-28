@@ -1023,3 +1023,180 @@ test_that("extract_road_vars checks required columns", {
     )
   )
 })
+
+################################################################################
+# run_lur_model()
+################################################################################
+test_that("errors when response variable does not exist", {
+  skip_if_not(exists("sig_star"))
+  dat <- data.frame(
+    x1 = 1:5,
+    x2 = 2:6
+  )
+  direction <- data.frame(
+    value = c("x1", "x2"),
+    slope = c("+", "+")
+  )
+  expect_error(
+    run_lur_model(
+      c("x1", "x2"),
+      "x1",
+      0,
+      "y",
+      dat,
+      direction,
+      0.01
+    )
+  )
+})
+
+test_that("errors when original parameter is absent", {
+  skip_if_not(exists("sig_star"))
+  dat <- data.frame(
+    y = 1:5,
+    x1 = 1:5
+  )
+  direction <- data.frame(
+    value = "x1",
+    slope = "+"
+  )
+  expect_error(
+    run_lur_model(
+      "x1",
+      "missing",
+      0,
+      "y",
+      dat,
+      direction,
+      0.01
+    )
+  )
+})
+
+test_that("run_lur_model errors for non-data.frame input", {
+  expect_error(
+    run_lur_model(
+      col_interest = "x1",
+      original_para = "x1",
+      original_r2 = 0,
+      response_variable = "y",
+      data_with_variables = matrix(1:9, 3),
+      direction_of_effect_table = data.frame(
+        param = "x1",
+        sign = "+",
+        val = TRUE
+      ),
+      change_val = 0.01
+    ),
+    "`data_with_variables` must be a data frame."
+  )
+})
+
+test_that("run_lur_model errors when response variable is missing", {
+  dat <- data.frame(
+    x1 = 1:5
+  )
+  expect_error(
+    run_lur_model(
+      "x1",
+      "x1",
+      0,
+      "y",
+      dat,
+      data.frame(
+        param = "x1",
+        sign = "+",
+        val = TRUE
+      ),
+      0.01
+    ),
+    "response_variable"
+  )
+})
+
+test_that("run_lur_model errors when predictors are missing", {
+  dat <- data.frame(
+    y = 1:5
+  )
+  expect_error(
+    run_lur_model(
+      "x1",
+      "x1",
+      0,
+      "y",
+      dat,
+      data.frame(
+        param = "x1",
+        sign = "+",
+        val = TRUE
+      ),
+      0.01
+    ),
+    "Missing predictor columns"
+  )
+})
+
+test_that("run_lur_model errors for invalid direction table", {
+  dat <- data.frame(
+    y = 1:5,
+    x1 = 1:5
+  )
+  expect_error(
+    run_lur_model(
+      "x1",
+      "x1",
+      0,
+      "y",
+      dat,
+      data.frame(a = 1),
+      0.01
+    ),
+    "direction_of_effect_table"
+  )
+})
+
+test_that("run_lur_model errors for invalid change value", {
+  dat <- data.frame(
+    y = 1:5,
+    x1 = 1:5
+  )
+  expect_error(
+    run_lur_model(
+      "x1",
+      "x1",
+      0,
+      "y",
+      dat,
+      data.frame(
+        param = "x1",
+        sign = "+",
+        val = TRUE
+      ),
+      "0.01"
+    ),
+    "change_val"
+  )
+})
+
+test_that("run_lur_model errors for invalid original_r2", {
+  dat <- data.frame(
+    y = 1:5,
+    x1 = 1:5
+  )
+  expect_error(
+    run_lur_model(
+      "x1",
+      "x1",
+      "0.8",
+      "y",
+      dat,
+      data.frame(
+        param = "x1",
+        sign = "+",
+        val = TRUE
+      ),
+      0.01
+    ),
+    "original_r2"
+  )
+})
