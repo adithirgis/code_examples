@@ -1,5 +1,5 @@
 ---
-title: "Land Use Regression modelling - an example"
+title: "Land Use Regression (LUR) modelling - an example"
 author: "Adithi R. Upadhya"
 format:
   html:
@@ -17,6 +17,20 @@ execute:
   warning: false
   message: false
 ---
+
+## Introduction 
+
+- Land Use Regression (LUR) modeling is a statistical approach capable of predicting pollution levels at a high spatial resolution. 
+- In this study, pollution data for 2019 from a regulatory monitoring network in Delhi, India, was used to develop simple linear and interpretable LUR models for various criteria pollutants. 
+- The PM concentration levels were 2.5–4 times higher than the prescribed national ambient standards.
+- Land use related variables were found to be the most common predictors of the observed pollution levels. 
+-  The generated maps can be used for better estimates of death and disease burden, to identify the potential determinants of spatial variability in air pollution, and to help governments identify hot spots and prioritize mitigation activities. 
+- The spatial maps also reveal large heterogeneity in pollution concentrations within the Delhi region suggesting that relying on stationary data alone could lead to exposure misclassification for epidemiological purposes.
+
+:::{.callout-important}
+We adopted the European Study of Cohorts for Air Pollution Effects
+(ESCAPE) methodology (Eeftens et al., 2012) for building the LUR models.
+:::
 
 ## Setting up
 
@@ -251,6 +265,10 @@ industries_proj <- convert_sf_proj(industries, wgs, UTM_proj, "Long", "Lat")
 railway_proj <- proj_sf(here("data/railways", "Delhi_railways.shp"), UTM_proj)
 ```
 
+## Variables added to the model building
+
+![](img/parameters_2.jpg){fig-align="center" width="70%"}
+
 ## View Railways (interactive map)
 
 ```{r}
@@ -448,6 +466,23 @@ dataframe_all_params %>%
 Before fitting the land-use regression model, it is useful to examine correlations among predictor variables. Highly correlated predictors may introduce multicollinearity, resulting in unstable coefficient estimates and inflated standard errors. 
 :::
 
+## Model Development workflow
+
+```{mermaid}
+flowchart TD
+
+A["Candidate GIS & Remote Sensing Predictors"]
+B["Univariable Screening<br/>(Highest R² + Expected Effect)"]
+C["Forward Stepwise Variable Selection<br/>(≥ 1% Increase in Adjusted R²)"]
+D["Significance Testing<br/>(p ≤ 0.10)"]
+E["Multicollinearity Check<br/>(VIF ≤ 3)"]
+F["Influential Observation Analysis<br/>(Cook's Distance)"]
+G["Spatial Autocorrelation Assessment<br/>(Moran's I)"]
+H["LOOCV Validation<br/>(Leave-One-Out Cross-Validation)"]
+I["Final Model Evaluation<br/>(Adjusted R² • RMSE • NRMSE)"]
+
+A --> B --> C --> D --> E --> F --> G --> H --> I
+```
 
 - Here, we performed the univariate regression (ex: `PM2.5` vs `ndvi_buffer_200m`) to find out the parameter which has the highest R^2^ and the desired direction of effect.
 - We created an empty dataframe `data_univariate_summary` to add the values for univariate regression.
@@ -793,10 +828,12 @@ ggplot(dataframe_selected_params_p_vif_cd,
 
 ## Limitations 
 
+- The LUR models developed in this study are linear models using non-transformed predict and and predictor data. Given the dynamic and transient nature of the pollution sources observed in LMICs, a non-linear relationship is possible. 
+-  As most of the predictors considered in the present study are spatial variables with little or no temporal variability, temporally averaged spatial predict and data was used for the modeling exercise. 
+- This has limited the number of spatial data points available for modeling (N = 30 to 38, Table 1), which led to the choice of simple linear regression models over machine learning models.
 - Geographic representation is uneven.
-- Some variables contain missing observations.
-- Results represent associations rather than causal relationships.
+- Some variables contained missing observations.
 - Publication bias cannot be completely ruled out.
 
 ## References
-- Agrawal, P., Upadhya, A. R., Srishti, S., Kalshetty, M., Kulkarni, P., Kushwaha, M., & Sreekanth, V. (2024). Development of Land Use Regression (LUR) models and high-resolution spatial mapping of criteria air pollutants: Leveraging Delhi's continuous air monitoring network and remote sensing data. Environmental Pollution. Doi: https://doi.org/10.1016/j.envpol.2024.124444
+- Agrawal, P., Upadhya, A. R., Srishti, S., Kalshetty, M., Kulkarni, P., Kushwaha, M., & Sreekanth, V. (2024). Development of Land Use Regression (LUR) models and high-resolution spatial mapping of criteria air pollutants: Leveraging Delhi's continuous air monitoring network and remote sensing data. Journal of Atmospheric and Solar-Terrestrial Physics. Doi: 10.1016/j.jastp.2024.106385.
