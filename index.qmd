@@ -22,10 +22,8 @@ execute:
 
 - Land Use Regression (LUR) modeling is a statistical approach capable of predicting pollution levels at a high spatial resolution. 
 - In this study, pollution data for 2019 from a regulatory monitoring network in Delhi, India, was used to develop simple linear and interpretable LUR models for various criteria pollutants. 
-- The PM concentration levels were 2.5–4 times higher than the prescribed national ambient standards.
-- Land use related variables were found to be the most common predictors of the observed pollution levels. 
--  The generated maps can be used for better estimates of death and disease burden, to identify the potential determinants of spatial variability in air pollution, and to help governments identify hot spots and prioritize mitigation activities. 
-- The spatial maps also reveal large heterogeneity in pollution concentrations within the Delhi region suggesting that relying on stationary data alone could lead to exposure misclassification for epidemiological purposes.
+- The PM concentration levels were 2.5-4 times higher than the prescribed national ambient standards.
+
 
 :::{.callout-important}
 We adopted the European Study of Cohorts for Air Pollution Effects
@@ -35,10 +33,10 @@ We adopted the European Study of Cohorts for Air Pollution Effects
 ## Setting up
 
 - Source the [functions.R](https://github.com/adithirgis/code_examples/blob/main/R/functions.R) file that has custom-functions and loads the required libraries. 
-- Data frames shown here are restricted to 5 observations. For detailed view check in RStudio after cloning this repository.
+- Some tables shown here are restricted to 5 observations. For detailed view check in RStudio after cloning this repository [here](https://github.com/adithirgis/code_examples).
 
 ::: {.callout-important}
-All spatial datasets must first be projected into the same CRS before distances are calculated.
+All spatial datasets must first be projected into the same CRS before distances / buffers are calculated or generated.
 :::
 
 ```{r}
@@ -73,9 +71,9 @@ theme_lur <- function() {
 
 ## Coordinate reference systems and Response variable
 
-- Define the coordinate system used for collecting data, here we used the Geographic coordinate system is [`wgs`](https://gisgeography.com/wgs84-world-geodetic-system/) and also define the projected coordinate system, we used [`UTM_proj`](https://www.distancesto.com/coordinates/in/central-delhi-latitude-longitude/history/281282.html) (this is to calculate buffer and distances in meters).
-- `_proj` suffix denotes that data is converted to `UTM_proj` CRS. 
-- Mention your response variable / the variable you want to predict the values for.
+- Define the coordinate system used for collecting data, here we used the Geographic coordinate system is [`wgs`](https://gisgeography.com/wgs84-world-geodetic-system/) and for the projected coordinate system, we used [`UTM_proj`](https://www.distancesto.com/coordinates/in/central-delhi-latitude-longitude/history/281282.html).
+- `_proj` suffix in dataframes denotes that data is converted to `UTM_proj` CRS. 
+- Define your response variable / the variable you want to predict the values for.
 
 ```{r}
 #| echo: fenced
@@ -85,26 +83,6 @@ UTM_proj <- "+proj=utm +zone=43 +datum=WGS84"
 response_variable <- "PM2.5"
 varname <- sym("PM2.5")
 ```
-
-## Data introduction
-
-- Number of monitoring sites: 40
-
-- Predictor variables: 44
-
-- Response variable: PM2.5
-
-- Missing values: 5
-
-| Category    | Number |
-| ----------- | -----: |
-| Land-use    |     25 |
-| Railway     |      3 |
-| Population  |      4 |
-| NDVI        |      5 |
-| Meteorology |      4 |
-| Geographic  |      3 |
-
 
 ## Delhi sites data
 
@@ -138,7 +116,6 @@ delhi_sites_proj %>%
   container.overflow.y = TRUE)
 ```
 
-
 ## View Delhi sites (interactive map)
 
 ```{r}
@@ -147,19 +124,41 @@ delhi_sites_proj %>%
 mapview(delhi_sites_proj)
 ```
 
+## Data introduction
+
+- Number of monitoring sites: 40
+
+- Predictor variables: 44
+
+- Response variable: PM2.5
+
+- Missing values: 5
+
+| Category    | Number |
+| ----------- | -----: |
+| Land-use    |     25 |
+| Railway     |      3 |
+| Population  |      4 |
+| NDVI        |      5 |
+| Meteorology |      4 |
+| Geographic  |      3 |
+
 ## Load the table of desired direction of effect of the parameters
 
+- The direction of effect table specifies the expected sign of each predictor before model fitting. 
+- The direction-of-effect table specifies whether each predictor is expected to increase or decrease PM2.5 according to previous published literature or prior knowledge.
+
 ::: {.callout-important}
-The direction-of-effect table specifies whether each predictor is expected to increase or decrease pollutant concentrations based on prior knowledge and published literature. During model development, these expected signs are compared with the estimated regression coefficients to help identify predictors that may be statistically significant but environmentally implausible.
+During model development, these expected signs are compared with the estimated regression coefficients to help identify predictors that may be statistically significant but environmentally implausible.
 :::
 
+
+::: {.callout-note}
 - Green spaces are expected to have negative coefficients because they reduce pollution.
 - Road length variables are expected to increase pollution.
 - Elevation is expected to reduce concentrations.
-
-::: {.callout-note}
-The direction of effect table specifies the expected sign of each predictor before model fitting. The direction-of-effect table specifies whether each predictor is expected to increase or decrease PM2.5 according to previous literature.
 :::
+
 
 ```{r}
 #| echo: fenced
@@ -239,11 +238,15 @@ G --> H
 ```
 
 
+## Variables added to the model building
+
+![](img/parameters_2.jpg){fig-align="center" width="70%"}
+
 ## Reading in other spatial predictors
 
-1. Airport coordinates in the object `airport`. Note, that there is one airport location because there is just one runway;
-2. Industries coordinates in the object `industries`;
-3. Railways in the `railway_proj` object which is projected;
+1. Airport coordinates in the object `airport`. 
+2. Industries coordinates in the object `industries`.
+3. Railways in the `railway_proj` object which is projected.
 4. Convert all of them to projected coordinate system.
 
 ::: {.callout-note}
@@ -265,11 +268,8 @@ industries_proj <- convert_sf_proj(industries, wgs, UTM_proj, "Long", "Lat")
 railway_proj <- proj_sf(here("data/railways", "Delhi_railways.shp"), UTM_proj)
 ```
 
-## Variables added to the model building
 
-![](img/parameters_2.jpg){fig-align="center" width="70%"}
-
-## View Railways (interactive map)
+## Example: View Railways (interactive map)
 
 ```{r}
 #| echo: fenced
@@ -320,7 +320,7 @@ mapview(
 ```
 
 
-## View railway inside of buffer of radius 1000 m (interactive map)
+## View Railway lines inside of buffer of radius 1000 m for each site
 
 - From this step we calculate length of railway in that buffer.
 
@@ -343,7 +343,7 @@ mapview(
 )
 ```
 
-## Extracting distance variables for all `CODE`
+## Extracting distance variables like distance from airport and industries for all sites
 
 ```{r}
 #| echo: fenced
@@ -364,7 +364,7 @@ delhi_sites_proj_var %>%
 ```
 
 
-## Reading and extracting raster for all `CODE`
+## Reading and extracting raster like AOD, Elevation for all sites
 
 ```{r}
 #| echo: fenced
@@ -381,10 +381,10 @@ delhi_sites_proj_var <- extract_raster(delhi_sites_proj_var,
 
 ## Adding land use, population parameters
 
-- The land use, population parameters are added in the parameter list, which was derived using [Earth Engine](https://earthengine.google.com/).
-- The codes for Earth Engine parameter / predictor / variable extraction is in the [ReadMe](https://github.com/adithirgis/code_examples#readme). 
+- The land use land cover, NDVI, and population parameters were derived using [Earth Engine](https://earthengine.google.com/).
+- The codes for Earth Engine parameter / predictor / variable extraction is in this [folder](https://github.com/adithirgis/code_examples/tree/main/earth_engine_codes). 
 - The land use, population, and the railway lengths are replaced with `0` wherever the values were `NA`.
-- The PM~2.5~ data is also added at this step. 
+- The PM~2.5~ data for each site in Delhi is also added at this step. 
 
 ```{r}
 #| echo: fenced
@@ -825,6 +825,11 @@ ggplot(dataframe_selected_params_p_vif_cd,
   theme_lur()
 ```
 
+## Results and Discussions 
+
+- Land use related variables were found to be the most common predictors of the observed pollution levels. 
+-  The generated maps can be used for better estimates of death and disease burden, to identify the potential determinants of spatial variability in air pollution, and to help governments identify hot spots and prioritize mitigation activities. 
+- The spatial maps also reveal large heterogeneity in pollution concentrations within the Delhi region suggesting that relying on stationary data alone could lead to exposure misclassification for epidemiological purposes.
 
 ## Limitations 
 
