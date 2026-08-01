@@ -146,7 +146,7 @@ mapview(delhi_sites_proj)
 ## Load the table of desired direction of effect of the parameters
 
 - The direction of effect table specifies the expected sign of each predictor before model fitting. 
-- The direction-of-effect table specifies whether each predictor is expected to increase or decrease PM2.5 according to previous published literature or prior knowledge.
+- The direction-of-effect table specifies whether each predictor is expected to increase or decrease PM~2.5~ according to previous published literature or prior knowledge.
 
 ::: {.callout-important}
 During model development, these expected signs are compared with the estimated regression coefficients to help identify predictors that may be statistically significant but environmentally implausible.
@@ -452,6 +452,8 @@ dataframe_all_params[, col] <-
            as.numeric(as.character(x)))
 
 dataframe_all_params %>%
+  dplyr::select(everything(), 
+                -starts_with(c("snow_", "mang_", "moss_"))) %>% 
   dplyr::select(-c(CODE, lat, long)) %>%
   mutate(across(everything(), as.numeric)) %>% 
   gtsummary::tbl_summary(
@@ -489,7 +491,7 @@ A --> B --> C --> D --> E --> F --> G --> H --> I
 - We also checked for continuous repeated values in the columns using a data frame `cou`.
 - We check if a column has more than one non-zero or non-NA value to build the model.
 - This step is necessary as we have replaced `NA` values with `0` and also we need more than one value to build a linear model.
-- Check if column exists after cleaning and then in an iterative way perform univariate regression.
+- Check if column exists after cleaning and then iteratively perform univariate regression.
 - Apply `add_sign_check` to the `data_univariate_summary` / univariate regression table we generated, keep the variables where the desired direction / sign of effect is preserved. 
 - Extract the highest R^2^ and the parameter which has the highest R^2^.
 
@@ -693,7 +695,7 @@ data_to_check_for_direction_of_effect_after_cleaning <-
 
 ## Cook's distance 
 
-- Since vif of the model built did not remove parameters / variables from the model (< 3). 
+- VIF of the model built did not remove parameters / variables from the model (< 3). 
 - Calculate the cook's distance to remove influential observations.
 - Plot the cook's d values for the model built at the previous step. 
 
@@ -774,8 +776,9 @@ dataframe_selected_params_p_vif_cd_loocv <- loop_loocv(dataframe_selected_params
                                                        response_variable) %>% 
   dplyr::select(CODE, contains("predicted"))
 
-mean_adj_r2 <- mean(dataframe_selected_params_p_vif_cd_loocv$predicted_loocv_r2_adj, 
-                    na.rm = TRUE)
+mean_adj_r2 <- 
+  round(mean(dataframe_selected_params_p_vif_cd_loocv$predicted_loocv_r2_adj, 
+             na.rm = TRUE), digits = 2)
 ```
 
 - The mean adjusted R^2^ for LOOCV is `r mean_adj_r2`.
@@ -828,17 +831,19 @@ ggplot(dataframe_selected_params_p_vif_cd,
 ## Results and Discussions 
 
 - Land use related variables were found to be the most common predictors of the observed pollution levels. 
--  The generated maps can be used for better estimates of death and disease burden, to identify the potential determinants of spatial variability in air pollution, and to help governments identify hot spots and prioritize mitigation activities. 
+-  The generated maps can be used for better estimates of disease burden, to identify the potential determinants of spatial variability in air pollution, and to help governments identify hot spots and prioritize mitigation activities. 
 - The spatial maps also reveal large heterogeneity in pollution concentrations within the Delhi region suggesting that relying on stationary data alone could lead to exposure misclassification for epidemiological purposes.
 
 ## Limitations 
 
 - The LUR models developed in this study are linear models using non-transformed predict and and predictor data. Given the dynamic and transient nature of the pollution sources observed in LMICs, a non-linear relationship is possible. 
 -  As most of the predictors considered in the present study are spatial variables with little or no temporal variability, temporally averaged spatial predict and data was used for the modeling exercise. 
-- This has limited the number of spatial data points available for modeling (N = 30 to 38, Table 1), which led to the choice of simple linear regression models over machine learning models.
+- This has limited the number of spatial data points available for modeling (N ~ 40), which led to the choice of simple linear regression models over machine learning models.
 - Geographic representation is uneven.
 - Some variables contained missing observations.
-- Publication bias cannot be completely ruled out.
 
 ## References
+
 - Agrawal, P., Upadhya, A. R., Srishti, S., Kalshetty, M., Kulkarni, P., Kushwaha, M., & Sreekanth, V. (2024). Development of Land Use Regression (LUR) models and high-resolution spatial mapping of criteria air pollutants: Leveraging Delhi's continuous air monitoring network and remote sensing data. Journal of Atmospheric and Solar-Terrestrial Physics. Doi: 10.1016/j.jastp.2024.106385.
+- Eeftens, M., Tsai, M.Y., Ampe, C., Anwander, B., Beelen, R., Bellander, T., et al., 2012. Spatial variation of PM2.5, PM10, PM2.5
+absorbance and PM coarse concentrations between and within 20 European study areas and the relationship with NO2–results of the ESCAPE project. Atmos. Environ. 62, 303–317. Doi: 10.1016/j.atmosenv.2012.08.038.
