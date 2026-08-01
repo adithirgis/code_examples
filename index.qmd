@@ -27,7 +27,7 @@ execute:
 
 
 :::{.callout-note}
-Delhi's PM2.5 was 2.5–4x national standards; we built a model using land use, traffic, and population data that predicts pollution at fine spatial resolution across the city, which can help identify hotspots.
+Delhi's PM~2.5~ shows 2.5-4x national standards; we built a model using land use, traffic, and population data that predicts pollution at fine spatial resolution across the city, which can help identify hotspots.
 :::
 
 ## Setting up
@@ -40,7 +40,7 @@ We adopted the European Study of Cohorts for Air Pollution Effects
 - Source the [functions.R](https://github.com/adithirgis/code_examples/blob/main/R/functions.R) file that has custom-functions and loads the required libraries. 
 - Some tables shown here are restricted to 5 observations. For detailed view check in RStudio after cloning this repository [here](https://github.com/adithirgis/code_examples).
 
-::: {.callout-important}
+::: {.callout-caution}
 All spatial datasets must first be projected into the same CRS before distances / buffers are calculated or generated.
 :::
 
@@ -93,7 +93,7 @@ varname <- sym("PM2.5")
 
 - Read the Delhi data, please make sure all training and predicting dataset has a **CODE** (this column is case sensitive as well) a column to uniquely identify the points of training / or each site of interest.
 
-::: {.callout-note}
+::: {.callout-caution}
 The **CODE** is super important and is used for deriving variables from Earth Engine as well, after we derive from various sources we use this column to join multiple predictors / variables dataframe. 
 :::
 
@@ -135,7 +135,7 @@ mapview(delhi_sites_proj)
 
 - Predictor variables: 44
 
-- Response variable: PM2.5
+- Response variable: PM~2.5~
 
 - Missing values: 5
 
@@ -153,7 +153,7 @@ mapview(delhi_sites_proj)
 - The direction of effect table specifies the expected sign of each predictor before model fitting. 
 - The direction-of-effect table specifies whether each predictor is expected to increase or decrease PM~2.5~ according to previous published literature or prior knowledge.
 
-::: {.callout-important}
+::: {.callout-tip}
 During model development, these expected signs are compared with the estimated regression coefficients to help identify predictors that may be statistically significant but environmentally implausible.
 :::
 
