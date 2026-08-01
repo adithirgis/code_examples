@@ -10,6 +10,7 @@ format:
     highlight-style: a11y
     html-math-method: katex
     code-copy: true
+    code-fold: true
     code-tools: true
     self-contained: true
     css: styling.scss
@@ -25,12 +26,16 @@ execute:
 - The PM concentration levels were 2.5-4 times higher than the prescribed national ambient standards.
 
 
+:::{.callout-note}
+Delhi's PM2.5 was 2.5–4x national standards; we built a model using land use, traffic, and population data that predicts pollution at fine spatial resolution across the city, which can help identify hotspots.
+:::
+
+## Setting up
+
 :::{.callout-important}
 We adopted the European Study of Cohorts for Air Pollution Effects
 (ESCAPE) methodology (Eeftens et al., 2012) for building the LUR models.
 :::
-
-## Setting up
 
 - Source the [functions.R](https://github.com/adithirgis/code_examples/blob/main/R/functions.R) file that has custom-functions and loads the required libraries. 
 - Some tables shown here are restricted to 5 observations. For detailed view check in RStudio after cloning this repository [here](https://github.com/adithirgis/code_examples).
@@ -353,6 +358,7 @@ delhi_sites_proj_var <-
                         airport = airport_proj,
                         industries = industries_proj)
 delhi_sites_proj_var %>% 
+  dplyr::select(everything(), -geometry) %>% 
   head() %>% 
   gt() %>% 
   tab_options(
