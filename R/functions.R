@@ -5,7 +5,7 @@ pacman::p_load(dplyr, tidyr, purrr, stringr, sf, leaflet, broom,
 
 
 ################################################################################
-# Downloading OSM data
+# Downloading OSM data - railways, roads, airport
 ################################################################################
 # bbox <- c(xmin, ymin, xmax, ymax)
 # roads <- opq(bbox = bbox) %>%
