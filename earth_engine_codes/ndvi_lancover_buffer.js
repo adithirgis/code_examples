@@ -1,4 +1,4 @@
-// set of points
+// set of points in Delhi (same code for Landcover using ESA)
 var pointList= ee.List(table)
 
 // generate the buffers
@@ -49,7 +49,7 @@ var rgbVis = {min: 0.0, max: 3000, bands: ['B4', 'B3', 'B2']};
 //Step 2: Keep only the relevant bands and filter for cloud coverage.
 //Filter to metadata less than the given value ee.Filter.lt means.
 var filtered = s2.filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 30))
-.filter(ee.Filter.date('2022-06-01', '2022-06-30'))
+.filter(ee.Filter.date('2019-01-01', '2019-12-31'))
 //  .filter(ee.Filter.bounds(geometrybox))
 
 print(filtered.size()); // to understand the no of data available days
@@ -89,7 +89,7 @@ var pts_ndvi1000 = ndviComposite.reduceRegions({
 
 var pts_ndvi500 = ndviComposite.reduceRegions({
   collection: coll2,
-  reducer: ee.Reducer.mean(),
+  reducer: ee.Reducer.mean(), // use sum here for landcover
   scale: 10
 })
 
@@ -118,7 +118,7 @@ print(ndvii)
 
 Export.table.toDrive({
   collection: ndvii,
-  description: 'Buffer_63sites_NDVI_June_2022',
+  description: 'Delhi_NDVI_2019',
   selectors: ['CODE','Location','mean'],
   fileFormat: 'CSV'
 })

@@ -1,9 +1,9 @@
 var dataset = ee.ImageCollection("ECMWF/ERA5_LAND/MONTHLY")
 .select('total_precipitation')
-.filter(ee.Filter.date('2022-06-01', '2022-07-01'))
+.filter(ee.Filter.date('2019-01-01', '2019-12-31'))
 print(dataset)
 
-var clipped = dataset.sum().clip(geometry);
+var clipped = dataset.sum().clip(geometrybox);
 
 Map.centerObject(clipped);
 
@@ -22,8 +22,8 @@ Map.addLayer(clipped, visualization, "total_precipitation");
 
 Export.image.toDrive({
   image: clipped, 
-  description: 'Ban_TotalPrecipitation_June_2022',
+  description: 'Delhi_TotalPrecipitation_2019',
   scale: 11132 , 
-  region: geometry,
+  region: geometrybox,
   maxPixels: 1E10
 })

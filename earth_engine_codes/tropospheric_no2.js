@@ -1,6 +1,6 @@
 var collection = ee.ImageCollection('COPERNICUS/S5P/NRTI/L3_NO2')
 .select('tropospheric_NO2_column_number_density')
-.filterDate('2022-03-01', '2022-06-30');
+.filterDate('2019-01-01', '2019-12-31');
 
 var band_viz = {
   min: 0,
@@ -9,16 +9,16 @@ var band_viz = {
 };
 
 // Create a geometry representing an export region.
-var geometry1 = ee.Geometry.Rectangle([77.06675, 12.54762, 78.104963, 13.692457]);
+var geometrybox = delhi;
 
-var no2 = collection.mean().clip(geometry1);
+var no2 = collection.mean().clip(geometrybox);
 
 Map.addLayer(no2, band_viz, 'S5P N02');
 Map.setCenter(77.27, 13.11, 8);
 
 Export.image.toDrive({
   image: no2,
-  description: 'BNG_Tropospheric_NO2_Sentinel5P_2022June',
+  description: 'Delhi_Tropospheric_NO2_Sentinel5P_2019',
   scale: 1113.2,
-  region: geometry1
+  region: geometrybox
 });

@@ -1,17 +1,17 @@
 var dataset_u = ee.ImageCollection("ECMWF/ERA5_LAND/MONTHLY")
 .select('u_component_of_wind_10m')
-.filter(ee.Filter.date('2022-06-01', '2022-07-01'))
+.filter(ee.Filter.date('2019-01-01', '2019-12-31'))
 
 var dataset_v = ee.ImageCollection("ECMWF/ERA5_LAND/MONTHLY")
 .select('v_component_of_wind_10m')
-.filter(ee.Filter.date('2022-06-01', '2022-07-01')) 
+.filter(ee.Filter.date('2019-01-01', '2019-12-31')) 
 //  print(dataset)
 print(dataset_u);
 print(dataset_v); 
 
-// Clip to the output image to the Bengaluru Boundaries.
-var clipped_u = dataset_u.mean().clip(geometry); 
-var clipped_v = dataset_v.mean().clip(geometry); 
+// Clip to the output image to the Delhi Boundaries
+var clipped_u = dataset_u.mean().clip(geometrybox); 
+var clipped_v = dataset_v.mean().clip(geometrybox); 
   
 var visualization = {
   bands: ['u_component_of_wind_10m'],
@@ -40,28 +40,28 @@ Map.addLayer(clipped_v, vis, "v_component_of_wind_10m");
 
 Export.image.toDrive({
   image: clipped_u, 
-  description: 'Ban_u_wind_June_2022',  
+  description: 'Delhi_u_wind_June_2019',  
   scale: 11132 ,
-  region: geometry,
+  region: geometrybox,
   maxPixels: 1E10
 })
 
 Export.image.toDrive({
   image: clipped_v, 
-  description: 'Ban_v_wind_June_2022',  
+  description: 'Delhi_v_wind_June_2019',  
   scale: 11132 , 
-  region: geometry,
+  region: geometrybox,
   maxPixels: 1E10
 })
 
-var start_period = ee.Date('2022-06-01');
-var end_period = ee.Date('2022-07-01');
+var start_period = ee.Date('2019-01-01');
+var end_period = ee.Date('2019-12-31');
 
 var ERA5 = ee.ImageCollection("ECMWF/ERA5_LAND/MONTHLY")
 .filter(ee.Filter.date(start_period, end_period))
 
 var ERA5NL=ERA5.map(function(image){ 
-  return image.clip(geometry)});
+  return image.clip(geometrybox)});
 
 var ERA5windspeed = ERA5NL.map(function(image){
   var wind_10m = image.expression(
@@ -75,7 +75,7 @@ var ERA5windspeed = ERA5NL.map(function(image){
 var ERA5meanspeed = ERA5windspeed.map(function(image){
   var meandict = image.select('windspeed').reduceRegion({
     reducer: ee.Reducer.mean(),
-    geometry: geometry
+    geometry: geometrybox
   })
   return image.set(meandict); 
 });
@@ -94,9 +94,9 @@ Map.addLayer(ERA5meanspeed, visualization, "windspeed10m");
 
 Export.image.toDrive({
   image: ERA5meanspeed.mean(), 
-  description: 'Ban_windspeed_June_2022',  
+  description: 'Delhi_windspeed_2019',  
   scale: 11132 , 
-  region: geometry,
+  region: geometrybox,
   maxPixels: 1E10
   
 })

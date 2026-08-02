@@ -23,11 +23,15 @@ execute:
 
 - Land Use Regression (LUR) modeling is a statistical approach capable of predicting pollution levels at a high spatial resolution. 
 - In this study, pollution data for 2019 from a regulatory monitoring network in Delhi, India, was used to develop simple linear and interpretable LUR models for various criteria pollutants. 
-- The PM concentration levels were 2.5-4 times higher than the prescribed national ambient standards.
+- This walkthrough documents an end-to-end Land Use Regression (LUR) workflow built to predict PM~2.5~ at high spatial resolution using remote-sensing data. 
+- It shows how to identify and work with different data types like raster (e.g. satellite AOD, elevation), vector (site locations, buffers, railway lines) and tabular/CSV data and save each dataset in the correct format (GeoTIFF, shapefile/GeoPackage, CSV, RDS). 
+- It covers extracting OpenStreetMap data for roads, railways, and airport; interpolating pollutant surfaces at 50m resolution using GIS software; and collating predictors from multiple sources (Earth Engine, OSM, ground monitoring) into one clean, merged dataset using a unique site ID. 
+- The model-building steps walk through univariate screening, stepwise variable selection, multicollinearity (VIF) and influence (Cook's distance) checks, and leave-one-out cross-validation, producing a validated high-resolution prediction map using the final equation. 
+- This walk through is avialble on GitHub so that public health practitioners and researchers with / without coding experience can follow, reproduce, and adapt each step themselves.
 
 
 :::{.callout-note}
-Delhi's PM~2.5~ shows 2.5-4x national standards; we built a model using land use, traffic, and population data that predicts pollution at fine spatial resolution across the city, which can help identify hotspots.
+A few datasets used here - Land use land cover, NDVI, population have already been extracted and saved as csv files for the sites of the air pollution monitors across Delhi.
 :::
 
 ## Setting up

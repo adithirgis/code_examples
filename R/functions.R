@@ -1,6 +1,25 @@
 pacman::p_load(dplyr, tidyr, purrr, stringr, sf, leaflet, broom,
-               car, here, ggplot2, rlang, readr, mapview,
+               car, here, ggplot2, rlang, readr, mapview, osmdata,
                readxl, raster, caret, gt, ranger, tibble)
+
+
+
+################################################################################
+# Downloading OSM data
+################################################################################
+# bbox <- c(xmin, ymin, xmax, ymax)
+# roads <- opq(bbox = bbox) %>%
+#   add_osm_feature(key = "highway") %>%
+#   osmdata_sf()
+# roads_lines <- roads$osm_lines
+# railways <- opq(bbox = bbox) %>%
+#   add_osm_feature(key = "railway") %>%
+#   osmdata_sf()
+# railway_lines <- railways$osm_lines
+# airports <- opq(bbox = bbox) %>%
+#   add_osm_feature(key = "aeroway", value = "aerodrome") %>%
+#   osmdata_sf()
+# airport_point <- airports$osm_points
 
 
 

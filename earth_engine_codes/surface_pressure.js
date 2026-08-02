@@ -1,10 +1,10 @@
-var dataset = ee.ImageCollection("ECMWF/ERA5_LAND/MONTHLY")
+var dataset = ee.ImageCollection("ECMWF/ERA5_LAND/MONTHLY") 
 .select('surface_pressure')
-.filter(ee.Filter.date('2022-06-01', '2022-07-01'))
+.filter(ee.Filter.date('2019-01-01', '2019-12-31'))
 print(dataset)
 
-// Clip to the output image to the Bengaluru Boundaries.
-var clipped = dataset.mean().clip(geometry).multiply(0.01);
+// Clip to the output image to the Delhi Boundaries
+var clipped = dataset.mean().clip(geometrybox).multiply(0.01);
 
 var visualization = {
   bands: ['surface_pressure'],
@@ -21,8 +21,8 @@ Map.addLayer(clipped, visualization, "surface_pressure");
 
 Export.image.toDrive({
   image: clipped, 
-  description: 'Ban_Pressure_June_2022',  
-  scale: 11132 ,
-  region: geometry,
+  description: 'Delhi_Pressure_2019',  
+  scale: 11132 , 
+  region: geometrybox,
   maxPixels: 1E10
 })
