@@ -99,11 +99,6 @@ class - renamed_as
   - [`Geographically weighted regression`](https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1538-4632.1996.tb00936.x) using [`GWmodel`](https://cran.r-project.org/web/packages/GWmodel/GWmodel.pdf)
 
 
-## Earth Engine parameter download links
-
-- [LULC predictors extraction](https://code.earthengine.google.com/17ed646fc4afed19d58b6d3c8ebd9f5d) 
-- [NDVI predictors extraction](https://code.earthengine.google.co.in/bab3d8ccce61b72e4719f5b9b855031d)
-
 ## Resources 
 
 - [Spatial Data Science in R](https://r-spatial.org/book/)
