@@ -144,33 +144,6 @@ mapview(delhi_sites_proj)
 
 - Missing values: 5
 
-::: {.cell-output-display style="overflow-x:auto;"}
-| Dataset and reference | Predictor description | Unit | Buffer size (m) | Direction of effect |
-|:----------------------|:----------------------|:----:|:---------------:|:-------------------:|
-| **Land-use Land-cover**<br>(ESA WorldCover v100, 2020 product)<br>Zanaga et al. (2021) | Surface area of built-up area | m² | 100, 300, 500, 1000, 5000 | + |
-| | Surface area of permanent water bodies | m² | 100, 300, 500, 1000, 5000 | − |
-| | Surface area of tree cover | m² | 100, 300, 500, 1000, 5000 | − |
-| | Surface area of bare/sparse vegetation | m² | 100, 300, 500, 1000, 5000 | + / − |
-| | Surface area of cropland | m² | 100, 300, 500, 1000, 5000 | − |
-| | Surface area of scrubland/shrubland, grassland, and herbaceous wetland | m² | 100, 300, 500, 1000, 5000 | − |
-| **Population**<br>(GHSL, 2015 product)<br>Freire et al. (2020) | Number of inhabitants | # | 300, 500, 1000, 5000 | + |
-| **Elevation (SRTM)**<br>Farr et al. (2007) | Square root of elevation | m<sup>1/2</sup> | NA | − |
-| **Geographical variables** | Longitude | °E | NA | + / − |
-| | Latitude | °N | NA | + / − |
-| **Railway network (OSM)** | Length of railway line | m | 500, 1000, 5000 | + |
-| **Airport location** | Inverse distance to the runway | m⁻¹ | NA | + |
-| **Industry location** | Inverse distance to the nearest industry; inverse square distance to the nearest industry | m⁻¹; m⁻² | NA | + |
-| **NDVI**<br>(Sentinel-2, 2019 product)<br>Gascon et al. (2016) | Normalized Difference Vegetation Index (NDVI) | – | 100, 300, 500, 1000, 5000 | − |
-| **NTLI**<br>(VIIRS, 2019 product)<br>Elvidge et al. (2017) | Night-time light intensity | – | NA | + |
-| **Satellite NO₂ (TROPOMI)** | Tropospheric columnar NO₂ | molecules m⁻² | NA | + |
-| **AOD**<br>(MODIS-MAIAC, 2019 product)<br>Lyapustin et al. (2018) | Aerosol Optical Depth | – | NA | + |
-| **Meteorological data**<br>(ERA5-Land, 2019 product)<br>Muñoz-Sabater et al. (2021) | 2 m air temperature | K | NA | − |
-| | 2 m pressure | Pa | NA | + |
-| | 10 m eastward component of wind | m s⁻¹ | NA | − |
-| | 10 m northward component of wind | m s⁻¹ | NA | − |
-| | 10 m resultant wind speed | m s⁻¹ | NA | − |
-| | Total precipitation | m | NA | − |
-:::
 
 ## Load the table of desired direction of effect of the parameters
 
@@ -201,38 +174,106 @@ direction_of_effect_table <-
 ```{r}
 #| echo: FALSE
 #| label: table
-df <- tibble(
+df <- data.frame(
   Category = c(
     "\U1F333 Land use",
     "\U1F333 Land use",
     "\U1F686 Transport",
     "\U1F465 Population",
     "\U2708 Emission source",
-    "\U1F33F Environmental"
-  ),
+    "\U1F33F Environmental",
+    "\U1F333 Land use",
+    "\U1F333 Land use",
+    "\U1F333 Land use",
+    "\U1F333 Land use",
+    "\u26F0 Topography",
+    "\U1F30D Geography",
+    "\U1F30D Geography",
+    "\U1F3ED Emission source",
+    "\U1F303 Urban activity",
+    "\U1F6F0 Satellite",
+    "\u2601 Atmospheric",
+    "\U1F326 Meteorology",
+    "\U1F326 Meteorology",
+    "\U1F326 Meteorology",
+    "\U1F326 Meteorology",
+    "\U1F326 Meteorology",
+    "\U1F326 Meteorology"
+    ),
   Predictor = c(
     "Tree cover",
     "Built-up area",
     "Railway length",
     "Population density",
     "Airport distance",
-    "NDVI"
-  ),
+    "NDVI",
+    "Permanent water bodies",
+    "Bare / sparse vegetation",
+    "Cropland",
+    "Grassland / shrubland / wetlands",
+    "Elevation",
+    "Longitude",
+    "Latitude",
+    "Industry distance",
+    "Night-time light intensity",
+    "Satellite NO\u2082",
+    "Aerosol Optical Depth (AOD)",
+    "Air temperature",
+    "Air pressure",
+    "Eastward wind",
+    "Northward wind",
+    "Wind speed",
+    "Precipitation"
+    ),
   `Expected Effect` = c(
     "\u2193 PM\u2082.\u2085",
     "\u2191 PM\u2082.\u2085",
     "\u2191 PM\u2082.\u2085",
     "\u2191 PM\u2082.\u2085",
     "\u2193 PM\u2082.\u2085 with increasing distance",
+    "\u2193 PM\u2082.\u2085",
+    "\u2193 PM\u2082.\u2085",
+    "\u2191 / \u2193 PM\u2082.\u2085",
+    "\u2193 PM\u2082.\u2085",
+    "\u2193 PM\u2082.\u2085",
+    "\u2193 PM\u2082.\u2085",
+    "\u2191 / \u2193 PM\u2082.\u2085",
+    "\u2191 / \u2193 PM\u2082.\u2085",
+    "\u2191 PM\u2082.\u2085 with proximity",
+    "\u2191 PM\u2082.\u2085",
+    "\u2191 PM\u2082.\u2085",
+    "\u2191 PM\u2082.\u2085",
+    "\u2193 PM\u2082.\u2085",
+    "\u2191 PM\u2082.\u2085",
+    "\u2193 PM\u2082.\u2085",
+    "\u2193 PM\u2082.\u2085",
+    "\u2193 PM\u2082.\u2085",
     "\u2193 PM\u2082.\u2085"
-  ),
+    ),
   Why = c(
     "Vegetation enhances pollutant deposition and dispersion.",
     "Urbanized areas generally increase emissions and pollutant accumulation.",
     "Rail operations and associated transport activities contribute to emissions.",
     "Greater human activity is typically associated with higher emissions.",
     "Pollutant concentrations generally decrease farther from airport emission sources.",
-    "Greener surroundings promote pollutant removal and improve air quality."
+    "Greener surroundings promote pollutant removal and improve air quality.",
+    "Water bodies enhance atmospheric mixing and generally reduce nearby particulate pollution.",
+    "Bare surfaces may either generate wind-blown dust or have little influence depending on local conditions.",
+    "Cropland generally has lower emission intensity than urbanized land and may reduce PM\u2082.\u2085.",
+    "Natural vegetation promotes pollutant deposition and improves dispersion.",
+    "Higher elevations generally have lower PM\u2082.\u2085 because of better atmospheric ventilation.",
+    "Represents large-scale spatial gradients in air pollution.",
+    "Represents large-scale spatial gradients in air pollution.",
+    "Industrial facilities emit particulate matter and precursor pollutants, with concentrations decreasing as distance increases.",
+    "Night-time lights indicate urbanization and human activity associated with higher emissions.",
+    "Tropospheric NO\u2082 is a strong indicator of combustion-related emissions and is positively associated with PM\u2082.\u2085.",
+    "Higher aerosol optical depth reflects greater atmospheric aerosol loading and is positively associated with PM\u2082.\u2085.",
+    "Higher temperatures generally enhance atmospheric mixing and reduce near-surface PM\u2082.\u2085.",
+    "Higher atmospheric pressure suppresses vertical mixing, favouring pollutant accumulation.",
+    "Eastward winds enhance pollutant dispersion and reduce local PM\u2082.\u2085.",
+    "Northward winds enhance pollutant dispersion and reduce local PM\u2082.\u2085.",
+    "Higher wind speeds improve atmospheric ventilation and reduce pollutant accumulation.",
+    "Precipitation removes particulate matter through wet deposition."
   )
 )
 
