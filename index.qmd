@@ -115,6 +115,7 @@ delhi_sites_proj <- convert_sf_proj(delhi_sites_df, wgs,
   dplyr::select(CODE, lat, long)
 
 delhi_sites_proj %>% 
+  dplyr::select(everything(), -c(geometry)) %>% 
   head() %>% 
   gt() %>% 
   tab_options(
@@ -143,14 +144,33 @@ mapview(delhi_sites_proj)
 
 - Missing values: 5
 
-| Category    | Number |
-| ----------- | -----: |
-| Land-use    |     25 |
-| Railway     |      3 |
-| Population  |      4 |
-| NDVI        |      5 |
-| Meteorology |      4 |
-| Geographic  |      3 |
+::: {.cell-output-display style="overflow-x:auto;"}
+| Dataset and reference | Predictor description | Unit | Buffer size (m) | Direction of effect |
+|:----------------------|:----------------------|:----:|:---------------:|:-------------------:|
+| **Land-use Land-cover**<br>(ESA WorldCover v100, 2020 product)<br>Zanaga et al. (2021) | Surface area of built-up area | m² | 100, 300, 500, 1000, 5000 | + |
+| | Surface area of permanent water bodies | m² | 100, 300, 500, 1000, 5000 | − |
+| | Surface area of tree cover | m² | 100, 300, 500, 1000, 5000 | − |
+| | Surface area of bare/sparse vegetation | m² | 100, 300, 500, 1000, 5000 | + / − |
+| | Surface area of cropland | m² | 100, 300, 500, 1000, 5000 | − |
+| | Surface area of scrubland/shrubland, grassland, and herbaceous wetland | m² | 100, 300, 500, 1000, 5000 | − |
+| **Population**<br>(GHSL, 2015 product)<br>Freire et al. (2020) | Number of inhabitants | # | 300, 500, 1000, 5000 | + |
+| **Elevation (SRTM)**<br>Farr et al. (2007) | Square root of elevation | m<sup>1/2</sup> | NA | − |
+| **Geographical variables** | Longitude | °E | NA | + / − |
+| | Latitude | °N | NA | + / − |
+| **Railway network (OSM)** | Length of railway line | m | 500, 1000, 5000 | + |
+| **Airport location** | Inverse distance to the runway | m⁻¹ | NA | + |
+| **Industry location** | Inverse distance to the nearest industry; inverse square distance to the nearest industry | m⁻¹; m⁻² | NA | + |
+| **NDVI**<br>(Sentinel-2, 2019 product)<br>Gascon et al. (2016) | Normalized Difference Vegetation Index (NDVI) | – | 100, 300, 500, 1000, 5000 | − |
+| **NTLI**<br>(VIIRS, 2019 product)<br>Elvidge et al. (2017) | Night-time light intensity | – | NA | + |
+| **Satellite NO₂ (TROPOMI)** | Tropospheric columnar NO₂ | molecules m⁻² | NA | + |
+| **AOD**<br>(MODIS-MAIAC, 2019 product)<br>Lyapustin et al. (2018) | Aerosol Optical Depth | – | NA | + |
+| **Meteorological data**<br>(ERA5-Land, 2019 product)<br>Muñoz-Sabater et al. (2021) | 2 m air temperature | K | NA | − |
+| | 2 m pressure | Pa | NA | + |
+| | 10 m eastward component of wind | m s⁻¹ | NA | − |
+| | 10 m northward component of wind | m s⁻¹ | NA | − |
+| | 10 m resultant wind speed | m s⁻¹ | NA | − |
+| | Total precipitation | m | NA | − |
+:::
 
 ## Load the table of desired direction of effect of the parameters
 
@@ -185,7 +205,6 @@ df <- tibble(
   Category = c(
     "\U1F333 Land use",
     "\U1F333 Land use",
-    "\U1F6E3 Transport",
     "\U1F686 Transport",
     "\U1F465 Population",
     "\U2708 Emission source",
@@ -194,7 +213,6 @@ df <- tibble(
   Predictor = c(
     "Tree cover",
     "Built-up area",
-    "Road length",
     "Railway length",
     "Population density",
     "Airport distance",
@@ -205,14 +223,12 @@ df <- tibble(
     "\u2191 PM\u2082.\u2085",
     "\u2191 PM\u2082.\u2085",
     "\u2191 PM\u2082.\u2085",
-    "\u2191 PM\u2082.\u2085",
     "\u2193 PM\u2082.\u2085 with increasing distance",
     "\u2193 PM\u2082.\u2085"
   ),
   Why = c(
     "Vegetation enhances pollutant deposition and dispersion.",
     "Urbanized areas generally increase emissions and pollutant accumulation.",
-    "Higher traffic density leads to increased vehicle emissions.",
     "Rail operations and associated transport activities contribute to emissions.",
     "Greater human activity is typically associated with higher emissions.",
     "Pollutant concentrations generally decrease farther from airport emission sources.",
@@ -381,12 +397,31 @@ delhi_sites_proj_var %>%
 #| label: extract-raster-predictors
 dem_name <- "Delhi_SRTM_Elevation.tif"
 aod_name <- "Delhi_AOD_map_2019.tif"
+ntli_name <- "Delhi_NTLI_Jan2019_Dec2019.tif"
+no2_name <- "Delhi_Tropospheric_NO2_Sentinel5P_2019.tif"
+ws_name <- "Delhi_windspeed_2019.tif"
+uw_name <- "Delhi_u_wind_2019.tif"
+vw_name <- "Delhi_v_wind_2019.tif"
+temp_name <- "Delhi_Temperature_2019.tif"
+prec_name <- "Delhi_TotalPrecipitation_2019.tif"
+pres_name <- "Delhi_Pressure_2019.tif"
 
 aod <- raster(here("data/AOD/interpolated", aod_name))
 dem <- raster(here("data/DEM", dem_name))
+ntli <- raster(here("data/NTLI", ntli_name))
+no2 <- raster(here("data/NO2/interpolated", no2_name))
+ws <- raster(here("data/Met/interpolated", ws_name))
+u_wind <- raster(here("data/Met/interpolated", uw_name))
+v_wind <- raster(here("data/Met/interpolated", vw_name))
+temperature_2m <- raster(here("data/Met/interpolated", temp_name))
+precipitation <- raster(here("data/Met/interpolated", prec_name))
+pressure <- raster(here("data/Met/interpolated", pres_name))
 
 delhi_sites_proj_var <- extract_raster(delhi_sites_proj_var, 
-                                       dem, aod, wgs, UTM_proj)
+                                       dem, aod, no2, temperature_2m,
+                                       v_wind, u_wind, ws, pressure,
+                                       precipitation, ntli, 
+                                       wgs, UTM_proj)
 ```
 
 ## Adding land use, population parameters

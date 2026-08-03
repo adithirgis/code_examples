@@ -789,6 +789,14 @@ extract_dist_variable <- function(file_sf_proj,
 #' @param file_sf_proj A projected `sf` (multi)point object.
 #' @param dem A `raster` object: digital elevation model.
 #' @param aod A `raster` object: aerosol optical depth.
+#' @param no2 A `raster` object: Tropospheric columnar NO2.
+#' @param temperature_2m A `raster` object: 2 m air temperature.
+#' @param u_wind A `raster` object: 10 m resultant wind speed.
+#' @param v_wind A `raster` object: 10 m northward component of wind.
+#' @param ws A `raster` object: 10 m resultant wind speed.
+#' @param precipitation A `raster` object: Total precipitation.
+#' @param pressure A `raster` object: 2 m pressure.
+#' @param ntli A `raster` object: Night-time light intensity.
 #' @param wgs Character string, geographic CRS matching the rasters
 #'   (`dem`/`aod` are assumed to be in this CRS for extraction).
 #' @param UTM_proj Character string, the projected CRS to return the object in.
@@ -796,7 +804,11 @@ extract_dist_variable <- function(file_sf_proj,
 #' @return `file_sf_proj`, reprojected to `wgs` for extraction and back to
 #'   `UTM_proj`, with two additional columns: `elevation` (square-rooted DEM
 #'   value) and `aod`.
-extract_raster <- function(file_sf_proj, dem, aod, wgs, UTM_proj) {
+extract_raster <- function(file_sf_proj, 
+                           dem, aod, no2, temperature_2m,
+                           v_wind, u_wind, ws, pressure,
+                           precipitation, ntli, 
+                           wgs, UTM_proj) {
   dem_crs <- st_crs(dem)
   if (!identical(st_crs(wgs), dem_crs)) {
     warning(
@@ -813,9 +825,42 @@ extract_raster <- function(file_sf_proj, dem, aod, wgs, UTM_proj) {
   if (!inherits(aod, "RasterLayer")) {
     stop("`aod` must be a RasterLayer.", call. = FALSE)
   }
+  if (!inherits(no2, "RasterLayer")) {
+    stop("`no2` must be a RasterLayer.", call. = FALSE)
+  }
+  if (!inherits(temperature_2m, "RasterLayer")) {
+    stop("`temperature_2m` must be a RasterLayer.", call. = FALSE)
+  }
+  if (!inherits(v_wind, "RasterLayer")) {
+    stop("`v_wind` must be a RasterLayer.", call. = FALSE)
+  }
+  if (!inherits(u_wind, "RasterLayer")) {
+    stop("`u_wind` must be a RasterLayer.", call. = FALSE)
+  }
+  if (!inherits(precipitation, "RasterLayer")) {
+    stop("`precipitation` must be a RasterLayer.", call. = FALSE)
+  }
+  if (!inherits(pressure, "RasterLayer")) {
+    stop("`pressure` must be a RasterLayer.", call. = FALSE)
+  }
+  if (!inherits(ntli, "RasterLayer")) {
+    stop("`ntli` must be a RasterLayer.", call. = FALSE)
+  }
+  if (!inherits(ws, "RasterLayer")) {
+    stop("`ws` must be a RasterLayer.", call. = FALSE)
+  }
   file_sf <- st_transform(file_sf_proj, crs = wgs)
   elev <- raster::extract(dem, file_sf)
   aod_vals <- raster::extract(aod, file_sf)
+  no2_vals <- raster::extract(no2, file_sf)
+  temperature_2m_vals <- raster::extract(temperature_2m, file_sf)
+  v_wind_vals <- raster::extract(v_wind, file_sf)
+  u_wind_vals <- raster::extract(u_wind, file_sf)
+  pressure_vals <- raster::extract(pressure, file_sf)
+  precipitation_vals <- raster::extract(precipitation, file_sf)
+  ws_vals <- raster::extract(ws, file_sf)
+  ntli_vals <- raster::extract(ntli, file_sf)
+  
   if (any(elev < 0, na.rm = TRUE)) {
     warning(
       "Negative elevation values detected. ",
@@ -825,7 +870,15 @@ extract_raster <- function(file_sf_proj, dem, aod, wgs, UTM_proj) {
   }
   file_sf <- file_sf %>% 
     mutate(elevation = sqrt(elev),
-           aod = aod_vals)
+           aod = aod_vals,
+           no2 = no2_vals,
+           ntli = ntli_vals,
+           v_wind = v_wind_vals,
+           u_wind = u_wind_vals,
+           ws = ws_vals,
+           pressure = pressure_vals,
+           precipitation = precipitation_vals,
+           temperature_2m = temperature_2m_vals)
   file_sf_proj <- st_transform(file_sf, crs = UTM_proj)
   file_sf_proj
 }
