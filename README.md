@@ -33,7 +33,9 @@
 
 ## Variables / Parameters and their buffers 
 
-![\label{fig:parameters}](img/parameters_2.jpg)
+![\label{fig:parameters}](img/para_extra1.jpg)
+![\label{fig:parameters}](img/para_extra2.jpg)
+
     
 ## [Land use parameters](https://developers.google.com/earth-engine/datasets/catalog/ESA_WorldCover_v100) 
 
