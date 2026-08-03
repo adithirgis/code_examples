@@ -316,7 +316,7 @@ G --> H
 4. Convert all of them to projected coordinate system.
 
 ::: {.callout-note}
-Predictors like land use, NDVI, NTLI are extracted using circular buffers centred on each monitoring site.
+Predictors like land use, NDVI are extracted using circular buffers centred on each monitoring site.
 :::
 
 ```{r}
